@@ -88,17 +88,17 @@ def prepare_image_sets(dir_name, batch_size=10000):
     np.save(path + '/batch%s.npy' % batch_ind, out)
 
 
-def test_images():
-    path = os.path.join(os.path.split(__file__)[0], 'data')
+def test_images(dir_name):
+    path = os.path.join(os.path.split(__file__)[0], dir_name)
 
     for i in range(1, 4):
-        data_mat = np.load(path + '/batch%s.npy' % i)
+        data_mat = np.load(path + '/batch%s.npy' % 1)
         print data_mat.shape
 
     plt.imshow((data_mat[10].reshape(3, 256, 256)).transpose(1, 2, 0))
     plt.show()
 
-
+test_images('./images/')
 
 
 # path = os.path.join(

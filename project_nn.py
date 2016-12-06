@@ -416,6 +416,8 @@ def train_nn(train_model, validate_model, test_model,
     print(('The training process for function ' +
            calframe[1][3] +
            ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
+    
+    
 def drop(input, p=0.5): 
     """
     :type input: numpy.array
