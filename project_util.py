@@ -124,6 +124,7 @@ def load_data(dir_name, theano_shared=True):
     train_set_l = np.load(path + '/batch_l_1.npy')
     train_set_ab = np.load(path + '/batch_ab_1.npy')
 
+
     for i in range(1,len(train_batches)/2):
         new_set_l = np.load(path + '/batch_l_%s.npy'%(i+1))
         new_set_ab = np.load(path + '/batch_ab_%s.npy'%(i+1))
@@ -156,14 +157,7 @@ def test_images():
     plt.imshow(color.lab2rgb(img_construct))
     plt.show()
 
-    # for i in range(1, 4):
-    #     data_mat = np.load(path + '/batch%s.npy' % i)
-    #     print data_mat.shape
 
-    # plt.imshow((data_mat[10].reshape(3, 256, 256)).transpose(1, 2, 0))
-    # plt.show()
-
-test_images()
 
 
 # path = os.path.join(
@@ -178,7 +172,4 @@ test_images()
 # plt.imshow(color.lab2rgb(img_construct))
 # plt.show()
 
-
-#download_images('data')
-#prepare_image_sets('data')
 
