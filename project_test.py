@@ -13,7 +13,7 @@ import os
 import sys
 
 from project_util import shared_dataset, load_data
-from project_nn import LogisticRegression, HiddenLayer, ConvReLU,DeConvReLU, train_nn, drop
+from project_nn import LogisticRegression, HiddenLayer, ConvReLU,DeConvReLU, train_nn, drop, BatchNorm
 
 def colorization(learning_rate=0.1, n_epochs=200,
                     ds_rate=None,
@@ -111,19 +111,17 @@ def colorization(learning_rate=0.1, n_epochs=200,
         border_mode=1,
         conv_stride=(2,2)
     )
-    bn_1_output = bn.batch_normalization(convrelu1_2.output,
-                               g, 
-                               b, 
-                               convrelu1_2.output.mean(axis=0, keepdims=True), 
-                               convrelu1_2.output.std(axis=0, keepdims=True))#, mode=mode)
-    
+    bn_1 = BatchNorm(rng,
+                     convrelu1_2.output,
+                     image_shape=(batch_size,64,dim_in/2,dim_in/2)
+                     )
     #######################
     #####   conv_2   ######
     #######################
     
     convrelu2_1 = ConvReLU(
         rng,
-        input=bn_1_output,
+        input=bn_1.output,
         image_shape=(batch_size, 64,  dim_in/2,  dim_in/2),
         filter_shape=(128, 64, 3, 3),
         border_mode=1
@@ -136,19 +134,17 @@ def colorization(learning_rate=0.1, n_epochs=200,
         border_mode=1,
         conv_stride=(2,2)
     )
-    bn_2_output = bn.batch_normalization(convrelu2_2.output,
-                               g, 
-                               b, 
-                               convrelu2_2.output.mean(axis=0, keepdims=True), 
-                               convrelu2_2.output.std(axis=0, keepdims=True))#, mode=mode)
-    
+    bn_2 = BatchNorm(rng,
+                     convrelu2_2.output,
+                     image_shape=(batch_size,128,dim_in/2/2,dim_in/2/2)
+                     )
     #######################
     #####   conv_3   ######
     #######################
     
     convrelu3_1 = ConvReLU(
         rng,
-        input=bn_2_output,
+        input=bn_2.output,
         image_shape=(batch_size, 128, dim_in/2/2, dim_in/2/2),
         filter_shape=(256, 128, 3, 3),
         border_mode=1
@@ -168,11 +164,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
         border_mode=1,
         conv_stride=(2,2)
     )
-    bn_3_output = bn.batch_normalization(convrelu3_3.output,
-                               g, 
-                               b, 
-                               convrelu3_3.output.mean(axis=0, keepdims=True), 
-                               convrelu3_3.output.std(axis=0, keepdims=True))#, mode=mode)
+    bn_3 = BatchNorm(rng,
+                     convrelu3_3.output,
+                     image_shape=(batch_size,256,dim_in/2/2/2,dim_in/2/2/2)
+                     )
     
     #######################
     #####   conv_4   ######
@@ -180,7 +175,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     
     convrelu4_1 = ConvReLU(
         rng,
-        input=bn_3_output,
+        input=bn_3.output,
         image_shape=(batch_size, 256, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 256, 3, 3),
         border_mode=1
@@ -199,11 +194,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
         filter_shape=(512, 512, 3, 3),
         border_mode=1
     )
-    bn_4_output = bn.batch_normalization(convrelu4_3.output,
-                               g, 
-                               b, 
-                               convrelu4_3.output.mean(axis=0, keepdims=True), 
-                               convrelu4_3.output.std(axis=0, keepdims=True))#, mode=mode)
+    bn_4 = BatchNorm(rng,
+                     convrelu4_3.output,
+                     image_shape=(batch_size,512,dim_in/2/2/2,dim_in/2/2/2)
+                     )
     
     #######################
     #####   conv_5   ######
@@ -211,7 +205,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     
     convrelu5_1 = ConvReLU(
         rng,
-        input=bn_4_output,
+        input=bn_4.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
         border_mode=1,#2,
@@ -233,11 +227,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
         border_mode=1,#2,
         conv_dilation=(2,2)
     )
-    bn_5_output = bn.batch_normalization(convrelu5_3.output,
-                               g, 
-                               b, 
-                               convrelu5_3.output.mean(axis=0, keepdims=True), 
-                               convrelu5_3.output.std(axis=0, keepdims=True))#, mode=mode)
+    bn_5 = BatchNorm(rng,
+                     convrelu5_3.output,
+                     image_shape=(batch_size,512,dim_in/2/2/2,dim_in/2/2/2)
+                     )
     
     #######################
     #####   conv_6   ######
@@ -245,7 +238,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     
     convrelu6_1 = ConvReLU(
         rng,
-        input=bn_5_output,
+        input=bn_5.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
         border_mode=1,#2,
@@ -267,12 +260,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
         border_mode=1,#2,
         conv_dilation=(2,2)
     )
-    bn_6_output = bn.batch_normalization(convrelu6_3.output,
-                               g, 
-                               b, 
-                               convrelu6_3.output.mean(axis=0, keepdims=True), 
-                               convrelu6_3.output.std(axis=0, keepdims=True))#, mode=mode)
-    
+    bn_6 = BatchNorm(rng,
+                     convrelu6_3.output,
+                     image_shape=(batch_size,512,dim_in/2/2/2,dim_in/2/2/2)
+                     )
     
     #######################
     #####   conv_7   ######
@@ -280,7 +271,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     
     convrelu7_1 = ConvReLU(
         rng,
-        input=bn_6_output,
+        input=bn_6.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
         border_mode=1
@@ -299,16 +290,15 @@ def colorization(learning_rate=0.1, n_epochs=200,
         filter_shape=(512, 512, 3, 3),
         border_mode=1
     )
-    bn_7_output = bn.batch_normalization(convrelu7_3.output,
-                               g, 
-                               b, 
-                               convrelu7_3.output.mean(axis=0, keepdims=True), 
-                               convrelu7_3.output.std(axis=0, keepdims=True))#, mode=mode)
+    bn_7 = BatchNorm(rng,
+                     convrelu7_3.output,
+                     image_shape=(batch_size,512,dim_in/2/2/2,dim_in/2/2/2)
+                     )
     
     #######################
     #####   conv_8   ######
     #######################
-    convrelu8_1test = bn_7_output.repeat(2,axis=2).repeat(2,axis=3)
+    convrelu8_1test = bn_7.output.repeat(2,axis=2).repeat(2,axis=3)
     #convrelu8_1 = DeConvReLU(
     #    rng,
     #    input=bn_7_output,
@@ -364,14 +354,14 @@ def colorization(learning_rate=0.1, n_epochs=200,
     )
     output_model = theano.function(
         [index],
-        [bw_input,y,test_out.flatten(2)],#T.mean(T.neq(input_x, final.output)),
+        [bw_input,y,test_out.flatten(2),bn_1.output,bn_2.output,bn_3.output],#T.mean(T.neq(input_x, final.output)),
         givens={
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = convrelu1_1.params + convrelu1_2.params + convrelu2_1.params + convrelu2_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + convrelu8_2.params + convrelu8_3.params
+    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_2.params + convrelu8_3.params
     #params = box10.params + box1.params + final.params
     # create a list of gradients for all model parameters
     #grads = T.grad(cost, params)

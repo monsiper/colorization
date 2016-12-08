@@ -21,7 +21,7 @@ from theano.tensor.nnet import conv
 import theano
 import theano.tensor as T
 from theano.tensor.signal import pool
-from theano.tensor.nnet import conv2d
+from theano.tensor.nnet import conv2d, bn
 from theano.tensor.nnet.abstract_conv import conv2d_grad_wrt_inputs
 from theano.tensor.signal import downsample
 
@@ -581,5 +581,60 @@ class DeConvReLU(object):
         # store parameters of this layer
         self.params = [self.W, self.b]
 
+        # keep track of model input
+        self.input = input
+        
+class BatchNorm(object):
+    def __init__(self,
+                 rng, 
+                 input,
+                 image_shape):
+        """
+        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
+
+        :type rng: numpy.random.RandomState
+        :param rng: a random number generator used to initialize weights
+
+        :type input: theano.tensor.dtensor4
+        :param input: symbolic image tensor, of shape image_shape
+
+        :type filter_shape: tuple or list of length 4
+        :param filter_shape: (number of filters, num input feature maps,
+                              filter height, filter width)
+
+        :type image_shape: tuple or list of length 4
+        :param image_shape: (batch size, num input feature maps,
+                             image height, image width)
+
+        :type poolsize: tuple or list of length 2
+        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
+        """
+
+        self.input = input
+
+        self.gamma = theano.shared(
+             numpy.asarray(
+                rng.uniform(low=-0.1, high=0.1, size=image_shape),
+                dtype=theano.config.floatX
+            ),
+            borrow = True
+        )
+        self.beta = theano.shared(
+             numpy.asarray(
+                rng.uniform(low=-0.1, high=0.1, size=image_shape),
+                dtype=theano.config.floatX
+            ),
+            borrow = True
+        )
+        #self.beta = theano.shared(value = numpy.zeros(image_shape, dtype=theano.config.floatX), name='beta')
+
+
+        # bn_output = lin_output
+        self.output = bn.batch_normalization(inputs = self.input,
+            gamma = self.gamma, beta = self.beta, mean = self.input.mean((0,), keepdims=True),
+            std = T.ones_like(self.input.var((0,), keepdims = True)), mode='high_mem')
+        
+        # store parameters of this layer
+        self.params = [self.gamma, self.beta]
         # keep track of model input
         self.input = input
