@@ -376,7 +376,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #    for param_i, grad_i in zip(params, grads)
     #]
     
-    def RMSprop(cost, params, lr=0.001, rho=0.9, epsilon=1e-6):
+    def RMSprop(cost, params, lr=learning_rate, rho=0.9, epsilon=1e-6):
         grads = T.grad(cost=cost, wrt=params)
         updates = []
         for p, g in zip(params, grads):
