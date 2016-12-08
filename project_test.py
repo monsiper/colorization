@@ -6,16 +6,18 @@ import theano.tensor as T
 from theano.tensor.signal import downsample
 from theano.tensor.signal import pool
 from theano.tensor.nnet import conv2d, bn
+from project_util import download_images,prepare_image_sets,load_data
 import scipy
+import os
 
 import sys
 
-from hw3_utils import shared_dataset, load_data
-from hw3_nn import LogisticRegression, HiddenLayer, LeNetConvPoolLayer, train_nn, drop, LeNetConvLayer
+from project_util import shared_dataset, load_data
+from project_nn import LogisticRegression, HiddenLayer, ConvReLU,DeConvReLU, train_nn, drop
 
 def colorization(learning_rate=0.1, n_epochs=200,
                     ds_rate=None,
-                    nkerns=[20, 50], batch_size=500,num_augment=80000,dim_in=256):
+                    nkerns=[20, 50], batch_size=500,num_augment=80000,dim_in=256,verbose=True,dir_name='data'):
     """ Demonstrates lenet on MNIST dataset
 
     :type learning_rate: float
@@ -33,13 +35,24 @@ def colorization(learning_rate=0.1, n_epochs=200,
     """
 
     rng = numpy.random.RandomState(23455)
-
-
-    train_set, valid_set, test_set = load_data(ds_rate=None,theano_shared=False)
+    
+    new_path = os.path.join(
+        os.path.split(__file__)[0], dir_name)
+    if not os.path.isdir(new_path):
+        download_images(dir_name, 3)
+        prepare_image_sets(dir_name, batch_size=200)
+    #train_set, valid_set, test_set = 
+    train_set_l_mat, train_set_ab_mat = load_data(dir_name,theano_shared=False)
     # Convert raw dataset to Theano shared variables.
-    test_set_x, test_set_y = shared_dataset(test_set)
-    valid_set_x, valid_set_y = shared_dataset(valid_set)
-    train_set_x, train_set_y = shared_dataset(train_set)
+    train_set_x = shared_dataset(train_set_l_mat)
+    train_set_y = shared_dataset(train_set_ab_mat)
+    test_set_x = shared_dataset(train_set_l_mat)
+    test_set_y = shared_dataset(train_set_ab_mat)
+    valid_set_x = shared_dataset(train_set_l_mat)
+    valid_set_y = shared_dataset(train_set_ab_mat)
+    #test_set_x, test_set_y = shared_dataset(test_set)
+    #valid_set_x, valid_set_y = shared_dataset(valid_set)
+    #train_set_x, train_set_y = shared_dataset(train_set)
 
     print('Current training data size is %i'%train_set_x.get_value(borrow=True).shape[0])
     print('Current validation data size is %i'%valid_set_x.get_value(borrow=True).shape[0])
@@ -60,7 +73,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
 
     # start-snippet-1
     x = T.matrix('x')   # the data is presented as rasterized images
-    y = T.ivector('y')  # the labels are presented as 1D vector of
+    y = T.matrix('y')  # the labels are presented as 1D vector of
                         # [int] labels
     ######################
     # BUILD ACTUAL MODEL #
@@ -76,8 +89,9 @@ def colorization(learning_rate=0.1, n_epochs=200,
     # filtering reduces the image size to (28-5+1 , 28-5+1) = (24, 24)
     # maxpooling reduces this further to (24/2, 24/2) = (12, 12)
     # 4D output tensor is thus of shape (batch_size, nkerns[0], 12, 12)
-    bw_input = T.mean(x.reshape((batch_size,3,dim_in,dim_in)),axis=1)
-    
+    bw_input = x.reshape((batch_size,1,dim_in,dim_in))
+    g = 1
+    b = 0.5
     #######################
     #####   conv_1   ######
     #######################
@@ -320,8 +334,8 @@ def colorization(learning_rate=0.1, n_epochs=200,
     test_conv = ConvReLU(
         rng,
         input=convrelu8_3.output,
-        image_shape=(batch_size, 1, dim_in/2/2, dim_in/2/2),
-        filter_shape=(1, 256, 3, 3),
+        image_shape=(batch_size, 2, dim_in/2/2, dim_in/2/2),
+        filter_shape=(256, 2, 3, 3),
         border_mode=1
     )
     
@@ -329,32 +343,35 @@ def colorization(learning_rate=0.1, n_epochs=200,
     test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
     
 
-    cost = T.sqrt(T.mean(T.square(T.flatten(bw_input-test_out))))
+    cost = T.sqrt(T.mean(T.square(T.flatten(y-test_out.flatten(2)))))
 
     # create a function to compute the mistakes that are made by the model
     test_model = theano.function(
         [index],
         cost,#T.mean(T.neq(input_x, final.output)),
         givens={
-            x: test_set_x[index * batch_size: (index + 1) * batch_size]
+            x: test_set_x[index * batch_size: (index + 1) * batch_size],
+            y: test_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     validate_model = theano.function(
         [index],
         cost,#T.mean(T.neq(input_x, final.output)),
         givens={
-            x: valid_set_x[index * batch_size: (index + 1) * batch_size]
+            x: valid_set_x[index * batch_size: (index + 1) * batch_size],
+            y: valid_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     output_model = theano.function(
         [index],
-        [input_x,corrupt_input,final.output],#T.mean(T.neq(input_x, final.output)),
+        [bw_input,y,test_out.flatten(2)],#T.mean(T.neq(input_x, final.output)),
         givens={
-            x: test_set_x[index * batch_size: (index + 1) * batch_size]
+            x: test_set_x[index * batch_size: (index + 1) * batch_size],
+            y: test_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = conv1_1.params + conv1_2.params + conv2_1.params + conv2_2.params + conv3_1.params + conv3_2.params + conv3_3.params + conv4_1.params + conv4_2.params + conv4_3.params + conv5_1.params + conv5_2.params + conv5_3.params + conv6_1.params + conv6_2.params + conv6_3.params + conv7_1.params + conv7_2.params + conv7_3.params + conv8_1.params + conv8_2.params + conv8_3.params
+    params = convrelu1_1.params + convrelu1_2.params + convrelu2_1.params + convrelu2_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params
     #params = box10.params + box1.params + final.params
     # create a list of gradients for all model parameters
     #grads = T.grad(cost, params)
@@ -392,10 +409,12 @@ def colorization(learning_rate=0.1, n_epochs=200,
         cost,
         updates=updates,
         givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size]
+            x: train_set_x[index * batch_size: (index + 1) * batch_size],
+            y: train_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     
+ 
     ###############
     # TRAIN MODEL #
     ###############
@@ -557,7 +576,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
             n_train_batches, n_valid_batches, n_test_batches, n_epochs,
             verbose = True)
     """
-    """
+"""
     layer0 = LeNetConvLayer(
         rng,
         input=layer0_input_drop,

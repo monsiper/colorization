@@ -21,7 +21,8 @@ from theano.tensor.nnet import conv
 import theano
 import theano.tensor as T
 from theano.tensor.signal import pool
-from theano.tensor.nnet import conv2d, abstract_conv
+from theano.tensor.nnet import conv2d
+from theano.tensor.nnet.abstract_conv import conv2d_grad_wrt_inputs
 from theano.tensor.signal import downsample
 
 class LogisticRegression(object):
@@ -432,68 +433,7 @@ def drop(input, p=0.5):
     mask = srng.binomial(n=1, p=p, size=input.shape, dtype=theano.config.floatX)
     return input * mask
 
-class LeNetConvLayer(object):
-    def __init__(self, rng, input, filter_shape, image_shape,border_mode='full',conv_stride=None,alpha=0):
-        """
-        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
-
-        :type rng: numpy.random.RandomState
-        :param rng: a random number generator used to initialize weights
-
-        :type input: theano.tensor.dtensor4
-        :param input: symbolic image tensor, of shape image_shape
-
-        :type filter_shape: tuple or list of length 4
-        :param filter_shape: (number of filters, num input feature maps,
-                              filter height, filter width)
-
-        :type image_shape: tuple or list of length 4
-        :param image_shape: (batch size, num input feature maps,
-                             image height, image width)
-
-        :type poolsize: tuple or list of length 2
-        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
-        """
-
-        assert image_shape[1] == filter_shape[1]
-        self.input = input
-
-        if conv_stride==None:
-            conv_stride=(1,1)
-        fan_in = numpy.prod(filter_shape[1:])
-        fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
-
-        # convolve input feature maps with filters
-        conv_out = conv2d(
-            input=input,
-            filters=self.W,
-            filter_shape=filter_shape,
-            input_shape=image_shape,
-            border_mode =border_mode,
-            subsample = conv_stride
-        )
-        self.output = T.nnet.relu(conv_out + self.b.dimshuffle('x', 0, 'x', 'x'),alpha=alpha)
-
-        # store parameters of this layer
-        self.params = [self.W, self.b]
-
-        # keep track of model input
-        self.input = input
-        
-
-class DeConvReLU(object):
+class ConvReLU(object):
     def __init__(self, 
                  rng, 
                  input, 
@@ -545,7 +485,79 @@ class DeConvReLU(object):
         # the bias is a 1D tensor -- one bias per output feature map
         b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
         self.b = theano.shared(value=b_values, borrow=True)
-        deconv_out = abstract_conv.conv2d_grad_wrt_inputs(
+
+        # convolve input feature maps with filters
+        conv_out = conv2d(
+            input=input,
+            filters=self.W,
+            filter_shape=filter_shape,
+            input_shape=image_shape,
+            border_mode =border_mode,
+            subsample = conv_stride,
+            filter_dilation = conv_dilation
+        )
+        self.output = T.nnet.relu(conv_out + self.b.dimshuffle('x', 0, 'x', 'x'),alpha=alpha)
+
+        # store parameters of this layer
+        self.params = [self.W, self.b]
+
+        # keep track of model input
+        self.input = input
+        
+
+class DeConvReLU(object):
+    def __init__(self, 
+                 rng, 
+                 input, 
+                 filter_shape, 
+                 image_shape,
+                 border_mode='full',
+                 conv_stride=None,
+                 alpha=0,
+                 conv_dilation=None):
+        """
+        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
+
+        :type rng: numpy.random.RandomState
+        :param rng: a random number generator used to initialize weights
+
+        :type input: theano.tensor.dtensor4
+        :param input: symbolic image tensor, of shape image_shape
+
+        :type filter_shape: tuple or list of length 4
+        :param filter_shape: (number of filters, num input feature maps,
+                              filter height, filter width)
+
+        :type image_shape: tuple or list of length 4
+        :param image_shape: (batch size, num input feature maps,
+                             image height, image width)
+
+        :type poolsize: tuple or list of length 2
+        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
+        """
+
+        assert image_shape[1] == filter_shape[0]
+        self.input = input
+
+        if conv_stride==None:
+            conv_stride=(1,1)
+        if conv_dilation==None:
+            conv_dilation=(1,1)
+        fan_in = numpy.prod(filter_shape[1:])
+        fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
+        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+        self.W = theano.shared(
+            numpy.asarray(
+                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                dtype=theano.config.floatX
+            ),
+            borrow=True
+        )
+
+        # the bias is a 1D tensor -- one bias per output feature map
+        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+        self.b = theano.shared(value=b_values, borrow=True)
+        deconv_out = conv2d_grad_wrt_inputs(
             output_grad=input,
             filters=self.W,
             filter_shape=filter_shape,

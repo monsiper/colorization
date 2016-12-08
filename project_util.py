@@ -20,7 +20,7 @@ def download_images(dir_name, num_of_pages):
     'folder_contains_this_file/data/' folder"""
 
     new_path = os.path.join(
-        os.path.split(__file__)[0], dir_name)
+        os.path.split(__file__)[0], dir_name+'/raw')
 
     if not os.path.isdir(new_path):
         os.makedirs(new_path)
@@ -60,6 +60,8 @@ def prepare_image_sets(dir_name, batch_size=10000):
      them in batches consisting of batch_size images"""
 
     path = os.path.join(
+        os.path.split(__file__)[0], dir_name+'/raw')
+    new_path = os.path.join(
         os.path.split(__file__)[0], dir_name)
 
     if not os.path.isdir(path):
@@ -96,16 +98,17 @@ def prepare_image_sets(dir_name, batch_size=10000):
                         if img_ind%batch_size==0 and img_ind!=0:
                             batch_ind += 1
                             print('Creating matrices for batch number %s' %batch_ind)
-                            np.save(path + '/batch_l_%s.npy' %batch_ind, l_out)
-                            np.save(path + '/batch_ab_%s.npy' % batch_ind, ab_out)
+                            np.save(new_path + '/batch_l_%s.npy' %batch_ind, l_out)
+                            np.save(new_path + '/batch_ab_%s.npy' % batch_ind, ab_out)
+                            #np.save(new_path + '/batch_lab_%s.npy' % batch_ind,img_lab)
                             batch_reset = True
 
     if not batch_reset:
         batch_ind += 1
-        np.save(path + '/batch_l_%s.npy' % batch_ind, l_out)
-        np.save(path + '/batch_ab_%s.npy' % batch_ind, ab_out)
+        np.save(new_path + '/batch_l_%s.npy' % batch_ind, l_out)
+        np.save(new_path + '/batch_ab_%s.npy' % batch_ind, ab_out)
 
-def load_data(dir_name, theano_shared=True):
+def load_data(dir_name, theano_shared=True,num_batch=1):
 
     path = os.path.join(
         os.path.split(__file__)[0], dir_name)
