@@ -214,7 +214,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         input=bn_4_output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
-        border_mode=2,
+        border_mode=1,#2,
         conv_dilation=(2,2)
     )
     convrelu5_2 = ConvReLU(
@@ -222,7 +222,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         input=convrelu5_1.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
-        border_mode=2,
+        border_mode=1,#2,
         conv_dilation=(2,2)
     )
     convrelu5_3 = ConvReLU(
@@ -230,7 +230,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         input=convrelu5_2.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
-        border_mode=2,
+        border_mode=1,#2,
         conv_dilation=(2,2)
     )
     bn_5_output = bn.batch_normalization(convrelu5_3.output,
@@ -248,7 +248,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         input=bn_5_output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
-        border_mode=2,
+        border_mode=1,#2,
         conv_dilation=(2,2)
     )
     convrelu6_2 = ConvReLU(
@@ -256,7 +256,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         input=convrelu6_1.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
-        border_mode=2,
+        border_mode=1,#2,
         conv_dilation=(2,2)
     )
     convrelu6_3 = ConvReLU(
@@ -264,7 +264,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         input=convrelu6_2.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
         filter_shape=(512, 512, 3, 3),
-        border_mode=2,
+        border_mode=1,#2,
         conv_dilation=(2,2)
     )
     bn_6_output = bn.batch_normalization(convrelu6_3.output,
@@ -308,19 +308,19 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #######################
     #####   conv_8   ######
     #######################
-    
-    convrelu8_1 = DeConvReLU(
-        rng,
-        input=bn_7_output,
-        image_shape=(batch_size, 512, dim_in/2/2, dim_in/2/2),
-        filter_shape=(512, 256, 4, 4),
-        border_mode=1
-    )
+    convrelu8_1test = bn_7_output.repeat(2,axis=2).repeat(2,axis=3)
+    #convrelu8_1 = DeConvReLU(
+    #    rng,
+    #    input=bn_7_output,
+    #    image_shape=(batch_size, 512, dim_in/2/2, dim_in/2/2),
+    #    filter_shape=(512, 256, 4, 4),
+    #    border_mode=1
+    #)
     convrelu8_2 = ConvReLU(
         rng,
-        input=convrelu8_1.output,
-        image_shape=(batch_size, 256, dim_in/2/2, dim_in/2/2),
-        filter_shape=(256, 256, 3, 3),
+        input=convrelu8_1test,#.output,
+        image_shape=(batch_size, 512, dim_in/2/2, dim_in/2/2),
+        filter_shape=(256, 512, 3, 3),
         border_mode=1
     )
     convrelu8_3 = ConvReLU(
@@ -334,8 +334,8 @@ def colorization(learning_rate=0.1, n_epochs=200,
     test_conv = ConvReLU(
         rng,
         input=convrelu8_3.output,
-        image_shape=(batch_size, 2, dim_in/2/2, dim_in/2/2),
-        filter_shape=(256, 2, 3, 3),
+        image_shape=(batch_size, 256, dim_in/2/2, dim_in/2/2),
+        filter_shape=(2, 256, 3, 3),
         border_mode=1
     )
     
@@ -371,7 +371,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = convrelu1_1.params + convrelu1_2.params + convrelu2_1.params + convrelu2_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params
+    params = convrelu1_1.params + convrelu1_2.params + convrelu2_1.params + convrelu2_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + convrelu8_2.params + convrelu8_3.params
     #params = box10.params + box1.params + final.params
     # create a list of gradients for all model parameters
     #grads = T.grad(cost, params)
@@ -502,160 +502,3 @@ def colorization(learning_rate=0.1, n_epochs=200,
           'with test performance %f %%' %
           (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     return output_model(0)
-
-"""
-    
-    # classify the values of the fully-connected sigmoidal layer
-    #layer7 = LogisticRegression(input=layer7_input, n_in=1280, n_out=10)
-
-    # the cost we minimize during training is the NLL of the model
-    #cost = layer7.negative_log_likelihood(y)
-
-    # create a function to compute the mistakes that are made by the model
-    test_model = theano.function(
-        [index],
-        layer7.errors(y),
-        givens={
-            x: test_set_x[index * batch_size: (index + 1) * batch_size],
-            y: test_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-
-    validate_model = theano.function(
-        [index],
-        layer7.errors(y),
-        givens={
-            x: valid_set_x[index * batch_size: (index + 1) * batch_size],
-            y: valid_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-
-    # create a list of all model parameters to be fit by gradient descent
-    params = stride0.params + stride1.params + layer7.params + layer6.params + layer5.params + layer4.params + layer3.params + layer2.params + layer1.params + layer0.params
-
-    # create a list of gradients for all model parameters
-    grads = T.grad(cost, params)
-    def RMSprop(cost, params, lr=0.001, rho=0.9, epsilon=1e-6):
-        grads = T.grad(cost=cost, wrt=params)
-        updates = []
-        for p, g in zip(params, grads):
-            acc = theano.shared(p.get_value() * 0.)
-            acc_new = rho * acc + (1 - rho) * g ** 2
-            gradient_scaling = T.sqrt(acc_new + epsilon)
-            g = g / gradient_scaling
-            updates.append((acc, acc_new))
-            updates.append((p, p - lr * g))
-        return updates
-    # train_model is a function that updates the model parameters by
-    # SGD Since this model has many parameters, it would be tedious to
-    # manually create an update rule for each model parameter. We thus
-    # create the updates list by automatically looping over all
-    # (params[i], grads[i]) pairs.
-    updates = RMSprop(cost,params)
-    #updates = [
-    #    (param_i, param_i - learning_rate * grad_i)
-    #    for param_i, grad_i in zip(params, grads)
-    #]
-
-    train_model = theano.function(
-        [index],
-        cost,
-        updates=updates,
-        givens={
-            x: train_set_x[index * batch_size: (index + 1) * batch_size],
-            y: train_set_y[index * batch_size: (index + 1) * batch_size]
-        }
-    )
-    
-    ###############
-    # TRAIN MODEL #
-    ###############
-    
-    print('... training')
-    train_nn(train_model, validate_model, test_model,
-            n_train_batches, n_valid_batches, n_test_batches, n_epochs,
-            verbose = True)
-    """
-"""
-    layer0 = LeNetConvLayer(
-        rng,
-        input=layer0_input_drop,
-        image_shape=(batch_size, 3, 32, 32),
-        filter_shape=(128, 3, 3, 3),
-        border_mode=1,alpha=0.33
-    )
-    layer1 = LeNetConvLayer(
-        rng,
-        input=layer0.output,
-        image_shape=(batch_size, 128, 32, 32),
-        filter_shape=(128, 128, 3, 3),
-        border_mode=1,alpha=0.33
-    )
-    stride0 = LeNetConvLayer(
-        rng,
-        input=layer1.output,
-        image_shape=(batch_size, 128, 32, 32),
-        filter_shape=(128, 128, 3, 3),
-        border_mode=1,
-        conv_stride=(2,2)
-    )
-    drop0 = drop(stride0.output,0.5)
-    
-    layer2 = LeNetConvLayer(
-        rng,
-        input=drop0,
-        image_shape=(batch_size, 128, 16, 16),
-        filter_shape=(384, 128, 3, 3),
-        border_mode=1,alpha=0.33
-    )
-    layer3 = LeNetConvLayer(
-        rng,
-        input=layer2.output,
-        image_shape=(batch_size, 384, 16, 16),
-        filter_shape=(384, 384, 3, 3),
-        border_mode=1
-    )
-    stride1 = LeNetConvLayer(
-        rng,
-        input=layer3.output,
-        image_shape=(batch_size, 384, 16, 16),
-        filter_shape=(384, 384, 3, 3),
-        border_mode=1,
-        conv_stride=(2,2)
-    )
-    drop1 = drop(stride1.output,0.5)
-    
-    layer4 = LeNetConvLayer(
-        rng,
-        input=drop1,
-        image_shape=(batch_size, 384, 8, 8),
-        filter_shape=(768, 384, 3, 3),
-        border_mode=1,alpha=0.33
-    )
-    layer5 = LeNetConvLayer(
-        rng,
-        input=layer4.output,
-        image_shape=(batch_size, 768, 8, 8),
-        filter_shape=(768, 768, 1, 1),
-        border_mode='valid'
-    )
-    layer6 = LeNetConvLayer(
-        rng,
-        input=layer5.output,
-        image_shape=(batch_size, 768, 8, 8),
-        filter_shape=(1280, 768, 1, 1),
-        border_mode='valid'
-    )
-    
-    pool0 = pool.pool_2d(
-            input=layer6.output,
-            ds=(8,8),
-            ignore_border=True,
-            mode='average_exc_pad'
-            )
-    """
-    # the HiddenLayer being fully-connected, it operates on 2D matrices of
-    # shape (batch_size, num_pixels) (i.e matrix of rasterized images).
-    # This will generate a matrix of shape (batch_size, nkerns[1] * 4 * 4),
-    # or (500, 50 * 4 * 4) = (500, 800) with the default values.
-    
