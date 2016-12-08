@@ -267,7 +267,7 @@ class LeNetConvPoolLayer(object):
         self.b = theano.shared(value=b_values, borrow=True)
 
         # convolve input feature maps with filters
-        conv_out = conv2d(
+        conv_out = T.nnet.conv2d(
             input=input,
             filters=self.W,
             filter_shape=filter_shape,
