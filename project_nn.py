@@ -23,7 +23,6 @@ import theano.tensor as T
 from theano.tensor.signal import pool
 from theano.tensor.nnet import conv2d, bn
 from theano.tensor.nnet.abstract_conv import conv2d_grad_wrt_inputs
-from theano.tensor.signal import downsample
 
 class LogisticRegression(object):
     """Multi-class Logistic Regression Class

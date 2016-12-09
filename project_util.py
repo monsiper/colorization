@@ -138,7 +138,8 @@ def load_data(dir_name, theano_shared=True,num_batch=1):
     np.random.shuffle(train_set_l)
     np.random.seed(35)
     np.random.shuffle(train_set_ab)
-
+    train_set_l.astype(theano.config.floatX)
+    train_set_ab.astype(theano.config.floatX)
     if theano_shared:
         train_set_l_mat = shared_dataset(train_set_l)
         train_set_ab_mat = shared_dataset(train_set_ab)
