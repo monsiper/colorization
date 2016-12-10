@@ -41,7 +41,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         download_images(dir_name, 3)
         prepare_image_sets(dir_name, batch_size=200)
     #train_set, valid_set, test_set = 
-    train_set_l_mat, train_set_ab_mat = load_data(dir_name,theano_shared=False)
+    train_set_l_mat, train_set_ab_mat = load_data(dir_name,theano_shared=False,ds=ds_rate)
     # Convert raw dataset to Theano shared variables.
     train_set_x = shared_dataset(train_set_l_mat)
     train_set_y = shared_dataset(train_set_ab_mat)
@@ -89,8 +89,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     # maxpooling reduces this further to (24/2, 24/2) = (12, 12)
     # 4D output tensor is thus of shape (batch_size, nkerns[0], 12, 12)
     bw_input = x.reshape((batch_size,1,dim_in,dim_in))
-    g = 1
-    b = 0.5
+
     #######################
     #####   conv_1   ######
     #######################
@@ -285,30 +284,32 @@ def colorization(learning_rate=0.1, n_epochs=200,
         rng,
         input=convrelu7_2.output,
         image_shape=(batch_size, 512, dim_in/2/2/2, dim_in/2/2/2),
-        filter_shape=(512, 512, 3, 3),
+        filter_shape=(256, 512, 3, 3),
         border_mode=1
     )
     bn_7 = BatchNorm(rng,
                      convrelu7_3.output,
-                     image_shape=(batch_size,512,dim_in/2/2/2,dim_in/2/2/2)
+                     image_shape=(batch_size,256,dim_in/2/2/2,dim_in/2/2/2)
                      )
     
     #######################
     #####   conv_8   ######
     #######################
-    convrelu8_1test = bn_7.output.repeat(2,axis=2).repeat(2,axis=3)
-    #convrelu8_1 = DeConvReLU(
-    #    rng,
-    #    input=bn_7_output,
-    #    image_shape=(batch_size, 512, dim_in/2/2, dim_in/2/2),
-    #    filter_shape=(512, 256, 4, 4),
-    #    border_mode=1
-    #)
+    #convrelu8_1test = bn_7.output.repeat(2,axis=2).repeat(2,axis=3)
+    convrelu8_1 = DeConvReLU(
+        rng,
+        input=bn_7.output,
+        image_shape=(batch_size, 256, dim_in/2/2, dim_in/2/2),
+        filter_shape=(256, 256, 4, 4),
+        border_mode=1,
+        conv_stride=(2,2)
+    )
+    
     convrelu8_2 = ConvReLU(
         rng,
-        input=convrelu8_1test,#.output,
-        image_shape=(batch_size, 512, dim_in/2/2, dim_in/2/2),
-        filter_shape=(256, 512, 3, 3),
+        input=convrelu8_1.output,
+        image_shape=(batch_size, 256, dim_in/2/2, dim_in/2/2),
+        filter_shape=(256, 256, 3, 3),
         border_mode=1
     )
     convrelu8_3 = ConvReLU(
@@ -359,7 +360,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_2.params + convrelu8_3.params
+    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + test_conv.params
     #params = box10.params + box1.params + final.params
     # create a list of gradients for all model parameters
     #grads = T.grad(cost, params)

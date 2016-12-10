@@ -535,7 +535,7 @@ class DeConvReLU(object):
         :param poolsize: the downsampling (pooling) factor (#rows, #cols)
         """
 
-        assert image_shape[1] == filter_shape[0]
+        #assert image_shape[1] == filter_shape[0]
         self.input = input
 
         if conv_stride==None:
