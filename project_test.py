@@ -12,7 +12,7 @@ import os
 import sys
 
 from project_util import shared_dataset, load_data
-from project_nn import LogisticRegression, HiddenLayer, ConvReLU,DeConvReLU, train_nn, drop, BatchNorm
+from project_nn import LogisticRegression, HiddenLayer, ConvReLU,DeConvReLU, train_nn, drop, BatchNorm,Colorization_Softmax,Colorization_Decoding
 
 def colorization(learning_rate=0.1, n_epochs=200,
                     ds_rate=None,
@@ -88,7 +88,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     # filtering reduces the image size to (28-5+1 , 28-5+1) = (24, 24)
     # maxpooling reduces this further to (24/2, 24/2) = (12, 12)
     # 4D output tensor is thus of shape (batch_size, nkerns[0], 12, 12)
-    bw_input = x.reshape((batch_size,1,dim_in,dim_in))
+    bw_input = x.reshape((batch_size,1,dim_in,dim_in))-50
 
     #######################
     #####   conv_1   ######
@@ -295,7 +295,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #######################
     #####   conv_8   ######
     #######################
-    #convrelu8_1test = bn_7.output.repeat(2,axis=2).repeat(2,axis=3)
+    
     convrelu8_1 = DeConvReLU(
         rng,
         input=bn_7.output,
@@ -319,21 +319,54 @@ def colorization(learning_rate=0.1, n_epochs=200,
         filter_shape=(256, 256, 3, 3),
         border_mode=1
     )
-    test_out_pre = (convrelu8_3.output).repeat(2, axis=2).repeat(2, axis=3)
-    test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
     
-    test_conv = ConvReLU(
+    ########################
+    #####   Softmax   ######
+    ########################
+    
+    class8_313_rh = Colorization_Softmax(
         rng,
-        input=test_out,
-        image_shape=(batch_size, 256, dim_in, dim_in),
-        filter_shape=(2, 256, 3, 3),
-        border_mode=1
+        input=convrelu8_3.output,
+        image_shape=(batch_size, 256, dim_in/2/2, dim_in/2/2),
+        filter_shape=(313, 256, 1, 1),
+        border_mode=0
     )
     
     
+    
+    
+    #########################
+    #####   Decoding   ######
+    #########################
+    
+    class8_ab = Colorization_Decoding(
+        rng,
+        input=class8_313_rh.output,
+        image_shape=(batch_size, 313, dim_in/2/2, dim_in/2/2),
+        filter_shape=(2, 313, 1, 1),
+        border_mode=0
+    )
+    
+    
+    test_out_pre = (class8_ab.output).repeat(2, axis=2).repeat(2, axis=3)
+    test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
+    
+    
+    #test_out_pre = (convrelu8_3.output).repeat(2, axis=2).repeat(2, axis=3)
+    #test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
+    
+    #test_conv = ConvReLU(
+    #    rng,
+    #    input=test_out,
+    #    image_shape=(batch_size, 256, dim_in, dim_in),
+    #    filter_shape=(2, 256, 3, 3),
+    #    border_mode=1
+    #)
+    
+    
 
-    cost = T.sqrt(T.mean(T.square(T.flatten(y-test_conv.output.flatten(2)))))
-
+    cost = T.sqrt(T.mean(T.square(T.flatten(y-test_out.flatten(2)))))
+    """
     # create a function to compute the mistakes that are made by the model
     test_model = theano.function(
         [index],
@@ -351,16 +384,17 @@ def colorization(learning_rate=0.1, n_epochs=200,
             y: valid_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
+    """
     output_model = theano.function(
         [index],
-        [bw_input,y,test_conv.output.flatten(2)],#T.mean(T.neq(input_x, final.output)),
+        [bw_input,y,test_out.flatten(2)],#T.mean(T.neq(input_x, final.output)),
         givens={
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + test_conv.params
+    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + class8_313_rh.params + class8_ab.params
     #params = box10.params + box1.params + final.params
     # create a list of gradients for all model parameters
     #grads = T.grad(cost, params)
@@ -431,10 +465,17 @@ def colorization(learning_rate=0.1, n_epochs=200,
 
             iter = (epoch - 1) * n_train_batches + minibatch_index
 
-            if (iter % 100 == 0) and verbose:
-                print('training @ iter = ', iter)    
-            cost_ij = train_model(minibatch_index)
 
+            cost_ij = train_model(minibatch_index)
+            
+            if (iter % 100 == 0) and verbose:
+                print('training @ iter = ', iter)   
+                print('epoch %i, minibatch %i/%i, validation error %f %%' %
+                        (epoch,
+                         minibatch_index + 1,
+                         n_train_batches,
+                         cost_ij * 100.))
+            """
             if (iter + 1) % validation_frequency == 0:
 
                 # compute zero-one loss on validation set
@@ -478,7 +519,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
             if patience <= iter:
                 done_looping = True
                 break
-
+            """
     end_time = timeit.default_timer()
 
     # Retrieve the name of function who invokes train_nn() (caller's name)
@@ -487,7 +528,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
 
     # Print out summary
     print('Optimization complete.')
-    print('Best validation error of %f %% obtained at iteration %i, '
-          'with test performance %f %%' %
-          (best_validation_loss * 100., best_iter + 1, test_score * 100.))
+    #print('Best validation error of %f %% obtained at iteration %i, '
+    #      'with test performance %f %%' %
+    #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     return output_model(0)
