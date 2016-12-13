@@ -4,7 +4,7 @@ import timeit
 import theano
 import theano.tensor as T
 from theano.tensor.signal import pool
-from theano.tensor.nnet import conv2d, bn
+from theano.tensor.nnet import conv2d, bn, abstract_conv
 from project_util import download_images,prepare_image_sets,load_data
 import scipy
 import os
@@ -346,10 +346,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
         filter_shape=(2, 313, 1, 1),
         border_mode=0
     )
+    test_out = abstract_conv.bilinear_upsampling(class8_ab.output, 4)
     
-    
-    test_out_pre = (class8_ab.output).repeat(2, axis=2).repeat(2, axis=3)
-    test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
+    #test_out_pre = (class8_ab.output).repeat(2, axis=2).repeat(2, axis=3)
+    #test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
     
     
     #test_out_pre = (convrelu8_3.output).repeat(2, axis=2).repeat(2, axis=3)
