@@ -101,7 +101,6 @@ def prepare_image_sets(dir_name, batch_size=10000):
                             print('Creating matrices for batch number %s' %batch_ind)
                             np.save(new_path + '/batch_l_%s.npy' %batch_ind, l_out)
                             np.save(new_path + '/batch_ab_%s.npy' % batch_ind, ab_out)
-                            np.save(new_path + '/batch_lab_%s.npy' % batch_ind,img_lab)
                             batch_reset = True
 
     if not batch_reset:
@@ -109,7 +108,7 @@ def prepare_image_sets(dir_name, batch_size=10000):
         np.save(new_path + '/batch_l_%s.npy' % batch_ind, l_out)
         np.save(new_path + '/batch_ab_%s.npy' % batch_ind, ab_out)
 
-def load_data(dir_name, theano_shared=True,num_batch=1,ds=1):
+def load_data(dir_name, theano_shared=True, ds=1):
 
     path = os.path.join(
         os.path.split(__file__)[0], dir_name)
@@ -142,11 +141,11 @@ def load_data(dir_name, theano_shared=True,num_batch=1,ds=1):
     train_set_l.astype(theano.config.floatX)
     train_set_ab.astype(theano.config.floatX)
     print(np.shape(train_set_l))
+
     if ds>1:
         train_set_l = measure.block_reduce(train_set_l, block_size=(1,1,ds,ds))
         train_set_ab = measure.block_reduce(train_set_ab, block_size=(1,1,ds,ds))
-        
-        
+
     if theano_shared:
         train_set_l_mat = shared_dataset(train_set_l)
         train_set_ab_mat = shared_dataset(train_set_ab)
@@ -154,7 +153,7 @@ def load_data(dir_name, theano_shared=True,num_batch=1,ds=1):
         train_set_l_mat = train_set_l
         train_set_ab_mat = train_set_ab
 
-    return [train_set_l_mat, train_set_ab_mat]
+    return (train_set_l_mat, train_set_ab_mat)
 
 
 def test_images():

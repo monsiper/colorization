@@ -432,6 +432,38 @@ def drop(input, p=0.5):
     mask = srng.binomial(n=1, p=p, size=input.shape, dtype=theano.config.floatX)
     return input * mask
 
+class ConvSubSample(object):
+    def __init__(self,
+                 input,
+                 filter_shape,
+                 image_shape,
+                 border_mode='full',
+                 conv_stride=None):
+
+        self.input = input
+        self.W = theano.shared(numpy.ones(shape=filter_shape, dtype=theano.config.floatX))
+
+        conv_out_first = conv2d(
+            input=input[:,0:1],
+            filters=self.W,
+            filter_shape=filter_shape,
+            input_shape=image_shape,
+            border_mode=border_mode,
+            subsample=conv_stride,
+        )
+
+        conv_out_second = conv2d(
+            input=input[:, 1:2],
+            filters=self.W,
+            filter_shape=filter_shape,
+            input_shape=image_shape,
+            border_mode=border_mode,
+            subsample=conv_stride,
+        )
+
+        self.output = T.concatenate([conv_out_first, conv_out_second], axis=1)
+
+
 class ConvReLU(object):
     def __init__(self, 
                  rng, 
