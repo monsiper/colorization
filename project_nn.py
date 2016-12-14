@@ -212,88 +212,6 @@ class HiddenLayer(object):
         # parameters of the model
         self.params = [self.W, self.b]
 
-class LeNetConvPoolLayer(object):
-    """Pool Layer of a convolutional network """
-
-    def __init__(self, rng, input, filter_shape, image_shape, poolsize=(2, 2),border_mode='valid',pool_stride = None,conv_stride=None):
-        """
-        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
-
-        :type rng: numpy.random.RandomState
-        :param rng: a random number generator used to initialize weights
-
-        :type input: theano.tensor.dtensor4
-        :param input: symbolic image tensor, of shape image_shape
-
-        :type filter_shape: tuple or list of length 4
-        :param filter_shape: (number of filters, num input feature maps,
-                              filter height, filter width)
-
-        :type image_shape: tuple or list of length 4
-        :param image_shape: (batch size, num input feature maps,
-                             image height, image width)
-
-        :type poolsize: tuple or list of length 2
-        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
-        """
-
-        assert image_shape[1] == filter_shape[1]
-        self.input = input
-        if pool_stride==None:
-            pool_stride=poolsize
-        if conv_stride==None:
-            conv_stride=(1,1)
-        # there are "num input feature maps * filter height * filter width"
-        # inputs to each hidden unit
-        fan_in = numpy.prod(filter_shape[1:])
-        # each unit in the lower layer receives a gradient from:
-        # "num output feature maps * filter height * filter width" /
-        #   pooling size
-        fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]) //
-                   numpy.prod(poolsize))
-        # initialize weights with random weights
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
-
-        # convolve input feature maps with filters
-        conv_out = T.nnet.conv2d(
-            input=input,
-            filters=self.W,
-            filter_shape=filter_shape,
-            input_shape=image_shape,
-            border_mode = border_mode,
-            subsample = conv_stride
-        )
-
-        # pool each feature map individually, using maxpooling
-        pooled_out = pool.pool_2d(
-            input=conv_out,
-            ds=poolsize,
-            ignore_border=True,
-            st=pool_stride
-        )
-
-        # add the bias term. Since the bias is a vector (1D array), we first
-        # reshape it to a tensor of shape (1, n_filters, 1, 1). Each bias will
-        # thus be broadcasted across mini-batches and feature map
-        # width & height
-        self.output = T.nnet.relu(pooled_out + self.b.dimshuffle('x', 0, 'x', 'x'))
-
-        # store parameters of this layer
-        self.params = [self.W, self.b]
-
-        # keep track of model input
-        self.input = input
 
 
 def train_nn(train_model, validate_model, test_model,
@@ -462,6 +380,77 @@ class ConvSubSample(object):
         )
 
         self.output = T.concatenate([conv_out_first, conv_out_second], axis=1)
+
+class Conv(object):
+    def __init__(self, 
+                 rng, 
+                 input, 
+                 filter_shape, 
+                 image_shape,
+                 border_mode='full',
+                 conv_stride=None,
+                 alpha=0,
+                 conv_dilation=None):
+        """
+        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
+
+        :type rng: numpy.random.RandomState
+        :param rng: a random number generator used to initialize weights
+
+        :type input: theano.tensor.dtensor4
+        :param input: symbolic image tensor, of shape image_shape
+
+        :type filter_shape: tuple or list of length 4
+        :param filter_shape: (number of filters, num input feature maps,
+                              filter height, filter width)
+
+        :type image_shape: tuple or list of length 4
+        :param image_shape: (batch size, num input feature maps,
+                             image height, image width)
+
+        :type poolsize: tuple or list of length 2
+        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
+        """
+
+        assert image_shape[1] == filter_shape[1]
+        self.input = input
+
+        if conv_stride==None:
+            conv_stride=(1,1)
+        if conv_dilation==None:
+            conv_dilation=(1,1)
+        fan_in = numpy.prod(filter_shape[1:])
+        fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
+        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+        self.W = theano.shared(
+            numpy.asarray(
+                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                dtype=theano.config.floatX
+            ),
+            borrow=True
+        )
+
+        # the bias is a 1D tensor -- one bias per output feature map
+        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+        self.b = theano.shared(value=b_values, borrow=True)
+
+        # convolve input feature maps with filters
+        conv_out = conv2d(
+            input=input,
+            filters=self.W,
+            filter_shape=filter_shape,
+            input_shape=image_shape,
+            border_mode =border_mode,
+            subsample = conv_stride,
+            filter_dilation = conv_dilation
+        )
+        self.output = conv_out + self.b.dimshuffle('x', 0, 'x', 'x')
+
+        # store parameters of this layer
+        self.params = [self.W, self.b]
+
+        # keep track of model input
+        self.input = input
 
 
 class ConvReLU(object):
@@ -814,3 +803,75 @@ class Colorization_Decoding(object):
 
         # keep track of model input
         self.input = input
+        
+
+class PriorFactor():
+    def __init__(self, 
+                 rng, 
+                 input,  
+                 alpha,
+                 gamma=0,
+                 verbose=False,
+                 priorFile='prior_probs.npy'):
+        
+        self.input = input
+        # settings
+        self.alpha = alpha
+        self.gamma = gamma
+        self.verbose = verbose
+
+        # empirical prior probability
+        self.prior_probs = np.load(priorFile)
+
+        # define uniform probability
+        self.uni_probs = np.zeros_like(self.prior_probs)
+        self.uni_probs[self.prior_probs!=0] = 1.
+        self.uni_probs = self.uni_probs/np.sum(self.uni_probs)
+
+        # convex combination of empirical prior and uniform distribution       
+        self.prior_mix = (1-self.gamma)*self.prior_probs + self.gamma*self.uni_probs
+
+        # set prior factor
+        self.prior_factor = self.prior_mix**-self.alpha
+        self.prior_factor = self.prior_factor/np.sum(self.prior_probs*self.prior_factor) # re-normalize
+
+        # implied empirical prior
+        self.implied_prior = self.prior_probs*self.prior_factor
+        self.implied_prior = self.implied_prior/np.sum(self.implied_prior) # re-normalize
+
+        if(self.verbose):
+            self.print_correction_stats()
+            
+        
+        self.output = self.forward(self.input,axis=1)
+
+    def forward(self,data_ab_quant,axis=1):
+        data_ab_maxind = T.argmax(data_ab_quant,axis=axis)
+        corr_factor = self.prior_factor[data_ab_maxind]
+        if(axis==0):
+            return corr_factor[na(),:]
+        elif(axis==1):
+            return corr_factor[:,na(),:]
+        elif(axis==2):
+            return corr_factor[:,:,na(),:]
+        elif(axis==3):
+            return corr_factor[:,:,:,na()]
+        
+class Colorization_PriorBoost(object):
+    def __init__(self,
+                 input,
+                 rng,
+                 image_shape,
+                 gamma=0,
+                 verbose=True
+                ):
+        self.input = input
+        self.gamma = .5
+        self.alpha = 1.
+        self.ENC_DIR = './'
+        self.pc = PriorFactor(rng,self.input,self.alpha,gamma=self.gamma,priorFile=os.path.join(self.ENC_DIR,'prior_probs.npy'))
+        self.N = image_shape[0]
+        self.Q = image_shape[1]
+        self.X = image_shape[2]
+        self.Y = image_shape[3]
+        self.output = pc.output
