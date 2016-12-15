@@ -4,7 +4,7 @@ import theano
 import theano.tensor as T
 from theano.tensor.signal import pool
 from theano.tensor.nnet import conv2d, bn, abstract_conv
-from project_util import download_images, prepare_image_sets
+from project_util import download_images, prepare_image_sets, test_encode
 import scipy
 import os
 
@@ -13,7 +13,6 @@ import sys
 from project_util import shared_dataset, load_data
 from project_nn import LogisticRegression, HiddenLayer, ConvReLU, DeConvReLU, train_nn, drop, \
     BatchNorm, Colorization_Softmax, Colorization_Decoding, ConvSubSample
-
 
 def colorization(learning_rate=0.1, n_epochs=200,
                  ds_rate=None,
@@ -521,3 +520,4 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     return output_model(0)
 
+test_encode()

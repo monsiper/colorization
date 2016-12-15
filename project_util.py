@@ -8,6 +8,7 @@ from matplotlib import pyplot as plt
 from skimage import color, io,measure
 from theano.tensor.signal import pool
 import theano
+from sklearn.neighbors import NearestNeighbors
 
 def shared_dataset(data, borrow=True):
 
@@ -155,6 +156,16 @@ def load_data(dir_name, theano_shared=True, ds=1):
 
     return (train_set_l_mat, train_set_ab_mat)
 
+def encode_ab_to_Q(a_chan_flt, b_chan_flt):
+
+    sigma = 5.
+    ab_chan_comb = np.column_stack((a_chan_flt,b_chan_flt))
+    ref_Qcolor_bins = np.load('pts_in_hull.npy')
+    img_enc = np.zeros((a_chan_flt.shape[0], ref_Qcolor_bins.shape[0] ))
+    nbrs = NearestNeighbors(n_neighbors=5, algorithm='ball_tree').fit(ref_Qcolor_bins)
+    distances, indices = nbrs.kneighbors(ab_chan_comb)
+
+    return distances, indices
 
 def test_images():
 
@@ -167,8 +178,14 @@ def test_images():
     plt.imshow(color.lab2rgb(img_construct))
     plt.show()
 
+def test_encode():
 
 
+    data_set = load_data('data', False)
+    data_a_chan = data_set[1][219][:64*64]
+    data_b_chan = data_set[1][219][64*64:2*64*64]
+    distances, indices = encode_ab_to_Q(data_a_chan, data_b_chan)
+    print data_l[:16,:16], data_l[:4,:4]
 
 # path = os.path.join(
 #     os.path.split(__file__)[0], 'data')

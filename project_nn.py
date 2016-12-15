@@ -432,6 +432,7 @@ def drop(input, p=0.5):
     mask = srng.binomial(n=1, p=p, size=input.shape, dtype=theano.config.floatX)
     return input * mask
 
+##########  from mehmet #############
 class ConvSubSample(object):
     def __init__(self,
                  input,
@@ -462,6 +463,8 @@ class ConvSubSample(object):
         )
 
         self.output = T.concatenate([conv_out_first, conv_out_second], axis=1)
+
+
 
 
 class ConvReLU(object):
