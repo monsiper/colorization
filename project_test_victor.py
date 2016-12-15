@@ -422,7 +422,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + conv8_313.params + class8_313_rh.params# + class8_ab.params
+    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + class8_313_rh.params# + class8_ab.params
 
     def RMSprop(cost, params, lr=learning_rate, rho=0.9, epsilon=1e-6):
         grads = T.grad(cost=cost, wrt=params)
