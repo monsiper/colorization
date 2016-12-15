@@ -382,6 +382,20 @@ class ConvSubSample(object):
 
         self.output = T.concatenate([conv_out_first, conv_out_second], axis=1)
 
+def dec_net_out_to_rgb(image_net_out, data_l):
+    #image_net_out is a tensor of shape (313,64,64) and data_l is a tensor of shape (1,64,64)
+    ref_Qcolor_bins = numpy.load('pts_in_hull.npy')
+    data_ab = numpy.dot((image_net_out.transpose(1,2,0)).reshape(4096,313), ref_Qcolor_bins)
+    data_a_chan = (data_ab[0]).reshape(1,64,64)
+    data_b_chan = (data_ab[1]).reshape(1,64,64)
+    img_construct = numpy.concatenate((data_a_chan, data_b_chan), axis=0)
+    img_construct = numpy.concatenate((data_l[:,::4,::4]+50, img_construct), axis=0)
+
+    #reconstructed image is returned in 64x64x3 format (take
+    return img_construct.transpose(1,2,0)
+
+##########  mehmet #############
+
 class Conv(object):
     def __init__(self, 
                  rng, 

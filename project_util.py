@@ -171,6 +171,7 @@ def encode_ab_to_Q(a_chan_flt, b_chan_flt):
 
     return (img_enc.flatten()).astype(dtype=np.float32)
 
+
 def test_images():
 
     # download_images('data', 3)
