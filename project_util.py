@@ -82,7 +82,7 @@ def prepare_image_sets(dir_name, batch_size=10000):
                     img_rgb = (np.array(resized_im))
                     if len(img_rgb.shape)==3:
                         img_ind += 1
-                        img_lab = color.rgb2lab(img_rgb)
+                        img_lab = color.rgb2lab(img_rgb[:,:,0:3])
                         l = img_lab[:, :, 0].flatten() # Slicing to get L data
                         a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
                         b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
@@ -125,13 +125,13 @@ def load_data(dir_name, theano_shared=True, ds=1):
     if not train_batches:
         return 'There is no .npy file in data folder'
 
-    train_set_l = np.load(path + '/batch_l_1.npy')
-    train_set_ab = np.load(path + '/batch_ab_1.npy')
+    train_set_l = np.load(path + '/test_batch_l_1.npy')
+    train_set_ab = np.load(path + '/test_batch_ab_1.npy')
 
 
     for i in range(1,len(train_batches)/2):
-        new_set_l = np.load(path + '/batch_l_%s.npy'%(i+1))
-        new_set_ab = np.load(path + '/batch_ab_%s.npy'%(i+1))
+        new_set_l = np.load(path + '/test_batch_l_%s.npy'%(i+1))
+        new_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(i+1))
         train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
         train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
 
