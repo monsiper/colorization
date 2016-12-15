@@ -415,14 +415,14 @@ def colorization(learning_rate=0.1, n_epochs=200,
     """
     output_model = theano.function(
         [index],
-        [test_out,bw_input,prior_boost.output],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
+        [test_out,test_out*prior_boost.output,bw_input,prior_boost.output,data_ab],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
         givens={
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
         }
     )
     # create a list of all model parameters to be fit by gradient descent
-    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + class8_313_rh.params# + class8_ab.params
+    params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + conv8_313.params + class8_313_rh.params# + class8_ab.params
 
     def RMSprop(cost, params, lr=learning_rate, rho=0.9, epsilon=1e-6):
         grads = T.grad(cost=cost, wrt=params)
@@ -477,7 +477,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
 
             cost_ij = train_model(minibatch_index)
 
-            if (iter % 100 == 0) and verbose:
+            if (iter % n_train_batches == 0) and verbose:
                 print('training @ iter = ', iter)
                 print('epoch %i, minibatch %i/%i, validation error %f %%' %
                       (epoch,
