@@ -39,7 +39,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     new_path = os.path.join(
         os.path.split(__file__)[0], dir_name)
     if not os.path.isdir(new_path):
-        download_images(dir_name, 3)
+        download_images(dir_name, 221)
         prepare_image_sets(dir_name, batch_size=200)
     # train_set, valid_set, test_set =
     train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate)
@@ -391,10 +391,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #    border_mode=1
     # )
 
-    net_out_for_cost_func = T.log((class8_313_rh.output.transpose(0,2,3,1)).reshape(batch_size, 4096, 313))
-    data_ab_enc_for_cost_func = data_ab_enc.reshape(batch_size, 4096, 313)
+    net_out_for_cost_func = T.log((class8_313_rh.output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
+    data_ab_enc_for_cost_func = data_ab_enc.reshape((batch_size, 4096, 313))
     #cost = T.sqrt(T.mean(T.square(T.flatten(data_ab - test_out*prior_boost.output))))
-    cost = -(((prior_boost.output).reshape(batch_size,4096)*(net_out_for_cost_func*data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)).sum()
+    cost = -(((prior_boost.output).reshape((batch_size,4096))*(net_out_for_cost_func*data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)).sum()
 
     """
     # create a function to compute the mistakes that are made by the model
@@ -417,7 +417,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     """
     output_model = theano.function(
         [index],
-        [test_out,test_out*prior_boost.output,bw_input,prior_boost.output,data_ab_enc],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
+        [test_out,bw_input,prior_boost.output,data_ab_enc],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
         givens={
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
