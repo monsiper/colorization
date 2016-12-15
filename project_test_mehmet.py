@@ -381,7 +381,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
     """
     output_model = theano.function(
         [index],
-        [bw_input, y, convsubsample.output, test_out.flatten(2)],  # T.mean(T.neq(input_x, final.output)),
+        [bw_input, y, test_out.flatten(2)],  # T.mean(T.neq(input_x, final.output)),
         givens={
             x: test_set_x[index * batch_size: (index + 1) * batch_size],
             y: test_set_y[index * batch_size: (index + 1) * batch_size]
