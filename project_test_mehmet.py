@@ -4,7 +4,7 @@ import theano
 import theano.tensor as T
 from theano.tensor.signal import pool
 from theano.tensor.nnet import conv2d, bn, abstract_conv
-from project_util import download_images, prepare_image_sets, test_encode
+from project_util import download_images, prepare_image_sets, test_encode, test_images
 import scipy
 import os
 
@@ -86,18 +86,6 @@ def colorization(learning_rate=0.1, n_epochs=200,
     print('... building the model')
     bw_input = x.reshape((batch_size, 1, dim_in, dim_in)) - 50
     color_output = y.reshape((batch_size, 2, dim_in, dim_in))
-
-    #######################
-    #####   subsample ab space  ######
-    #######################
-
-    convsubsample = ConvSubSample(
-        input=color_output,
-        filter_shape=(1, 1, 1, 1),
-        image_shape=(batch_size, 1, dim_in, dim_in),
-        border_mode=0,
-        conv_stride=(4, 4)
-    )
 
     #######################
     #####   conv_1   ######
@@ -520,4 +508,3 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     return output_model(0)
 
-test_encode()

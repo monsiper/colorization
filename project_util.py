@@ -69,7 +69,7 @@ def prepare_image_sets(dir_name, batch_size=10000):
     if not os.path.isdir(path):
         return "Data directory doesn't exist"
 
-    l_out, ab_out = 0, 0
+    l_out, ab_enc_out = 0, 0
     batch_reset = True
     batch_ind = 0
     img_ind = 0
@@ -84,30 +84,30 @@ def prepare_image_sets(dir_name, batch_size=10000):
                         img_ind += 1
                         img_lab = color.rgb2lab(img_rgb)
                         l = img_lab[:, :, 0].flatten() # Slicing to get L data
-                        a = img_lab[:, :, 1].flatten()  # Slicing to get a data
-                        b = img_lab[:, :, 2].flatten()  # Slicing to get b data
+                        a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
+                        b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
 
                         if batch_reset:
                             l_out = np.array(l, np.float32)
-                            ab_out = np.array(list(a) + list(b), np.float32)
+                            ab_enc_out = encode_ab_to_Q(a,b)
                             batch_reset = False
                         else:
-                            new_l = np.array(l, np.float32)
-                            new_ab = np.array(list(a) + list(b), np.float32)
+                            new_l = l.astype(dtype=np.float32)
+                            new_ab_enc = encode_ab_to_Q(a,b)
                             l_out = np.vstack((l_out,new_l))
-                            ab_out = np.vstack((ab_out, new_ab))
+                            ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
 
                         if img_ind%batch_size==0 and img_ind!=0:
                             batch_ind += 1
                             print('Creating matrices for batch number %s' %batch_ind)
-                            np.save(new_path + '/batch_l_%s.npy' %batch_ind, l_out)
-                            np.save(new_path + '/batch_ab_%s.npy' % batch_ind, ab_out)
+                            np.save(new_path + '/test_batch_l_%s.npy' %batch_ind, l_out)
+                            np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
                             batch_reset = True
 
     if not batch_reset:
         batch_ind += 1
-        np.save(new_path + '/batch_l_%s.npy' % batch_ind, l_out)
-        np.save(new_path + '/batch_ab_%s.npy' % batch_ind, ab_out)
+        np.save(new_path + '/test_batch_l_%s.npy' % batch_ind, l_out)
+        np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
 
 def load_data(dir_name, theano_shared=True, ds=1):
 
@@ -162,10 +162,14 @@ def encode_ab_to_Q(a_chan_flt, b_chan_flt):
     ab_chan_comb = np.column_stack((a_chan_flt,b_chan_flt))
     ref_Qcolor_bins = np.load('pts_in_hull.npy')
     img_enc = np.zeros((a_chan_flt.shape[0], ref_Qcolor_bins.shape[0] ))
+    x_ind =np.arange(0,a_chan_flt.shape[0],dtype='int')[:,np.newaxis]
     nbrs = NearestNeighbors(n_neighbors=5, algorithm='ball_tree').fit(ref_Qcolor_bins)
     distances, indices = nbrs.kneighbors(ab_chan_comb)
+    wts = np.exp(-distances**2/(2*sigma**2))
+    wts = wts/np.sum(wts, axis=1)[:, np.newaxis]
+    img_enc[x_ind, indices] = wts
 
-    return distances, indices
+    return (img_enc.flatten()).astype(dtype=np.float32)
 
 def test_images():
 
@@ -173,19 +177,17 @@ def test_images():
     # prepare_image_sets('data',200)
     data_set = load_data('data', False)
     data_l = ((data_set[0][219]).reshape(1,256,256)).transpose(1,2,0)
-    data_ab = ((data_set[1][219]).reshape(2,256,256)).transpose(1,2,0)
-    img_construct = np.concatenate((data_l.astype(np.float64),data_ab.astype(np.float64)), axis=2)
-    plt.imshow(color.lab2rgb(img_construct))
-    plt.show()
+    data_ab = (data_set[1][28]).reshape(64,64,313)
+               # .reshape(313,64,64)).transpose(1,2,0)
+    # img_construct = np.concatenate((data_l.astype(np.float64),data_ab.astype(np.float64)), axis=2)
+    # plt.imshow(color.lab2rgb(img_construct))
+    # plt.show()
+    return data_ab
 
 def test_encode():
 
+    prepare_image_sets('data',200)
 
-    data_set = load_data('data', False)
-    data_a_chan = data_set[1][219][:64*64]
-    data_b_chan = data_set[1][219][64*64:2*64*64]
-    distances, indices = encode_ab_to_Q(data_a_chan, data_b_chan)
-    print data_l[:16,:16], data_l[:4,:4]
 
 # path = os.path.join(
 #     os.path.split(__file__)[0], 'data')
