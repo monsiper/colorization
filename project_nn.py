@@ -813,6 +813,7 @@ class PriorFactor():
                  rng, 
                  input,  
                  alpha,
+                 batch_size,
                  gamma=0,
                  verbose=False,
                  priorFile='prior_probs.npy'):
@@ -824,29 +825,33 @@ class PriorFactor():
         self.verbose = verbose
 
         # empirical prior probability
-        self.prior_probs = np.load(priorFile)
+        self.prior_probs = numpy.load(priorFile)
 
         # define uniform probability
-        self.uni_probs = np.zeros_like(self.prior_probs)
+        self.uni_probs = numpy.zeros_like(self.prior_probs)
         self.uni_probs[self.prior_probs!=0] = 1.
-        self.uni_probs = self.uni_probs/np.sum(self.uni_probs)
+        self.uni_probs = self.uni_probs/numpy.sum(self.uni_probs)
 
         # convex combination of empirical prior and uniform distribution       
         self.prior_mix = (1-self.gamma)*self.prior_probs + self.gamma*self.uni_probs
 
         # set prior factor
         self.prior_factor = self.prior_mix**-self.alpha
-        self.prior_factor = self.prior_factor/np.sum(self.prior_probs*self.prior_factor) # re-normalize
+        self.prior_factor = theano.shared(
+            numpy.asarray(
+            self.prior_factor/numpy.sum(self.prior_probs*self.prior_factor),
+                dtype=theano.config.floatX)
+        ) # re-normalize
 
         # implied empirical prior
-        self.implied_prior = self.prior_probs*self.prior_factor
-        self.implied_prior = self.implied_prior/np.sum(self.implied_prior) # re-normalize
+        #self.implied_prior = self.prior_probs*self.prior_factor
+        #self.implied_prior = self.implied_prior/numpy.sum(self.implied_prior) # re-normalize
 
         if(self.verbose):
             self.print_correction_stats()
-            
-        
-        self.output = self.forward(self.input,axis=1)
+        print(self.prior_factor)
+        print(numpy.shape(self.prior_factor))
+        self.output = self.forward(self.input,axis=1).reshape((batch_size,1,64,64))
 
     def forward(self,data_ab_quant,axis=1):
         data_ab_maxind = T.argmax(data_ab_quant,axis=axis)
@@ -854,7 +859,8 @@ class PriorFactor():
         if(axis==0):
             return corr_factor[na(),:]
         elif(axis==1):
-            return corr_factor[:,na(),:]
+            #return corr_factor[:,na(),:]
+            return corr_factor
         elif(axis==2):
             return corr_factor[:,:,na(),:]
         elif(axis==3):
@@ -862,19 +868,27 @@ class PriorFactor():
         
 class Colorization_PriorBoost(object):
     def __init__(self,
-                 input,
                  rng,
-                 image_shape,
+                 input,
+                 batch_size=5,
+                 image_shape=None,
                  gamma=0,
                  verbose=True
                 ):
         self.input = input
         self.gamma = .5
         self.alpha = 1.
+        self.batch_size=batch_size
         self.ENC_DIR = './'
-        self.pc = PriorFactor(rng,self.input,self.alpha,gamma=self.gamma,priorFile=os.path.join(self.ENC_DIR,'prior_probs.npy'))
-        self.N = image_shape[0]
-        self.Q = image_shape[1]
-        self.X = image_shape[2]
-        self.Y = image_shape[3]
-        self.output = pc.output
+        self.pc = PriorFactor(rng,
+                              self.input,
+                              self.alpha,
+                              batch_size=self.batch_size,
+                              gamma=self.gamma,
+                              priorFile='./prior_probs.npy'
+                             )
+        #self.N = image_shape[0]
+        #self.Q = image_shape[1]
+        #self.X = image_shape[2]
+        #self.Y = image_shape[3]
+        self.output = self.pc.output
