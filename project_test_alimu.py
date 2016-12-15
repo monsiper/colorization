@@ -56,10 +56,6 @@ def colorization(learning_rate=0.1, n_epochs=200,
     n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
     n_test_batches = test_set_x.get_value(borrow=True).shape[0]
 
-    # n_train_batches = train_set_x.shape[0]
-    # n_valid_batches = valid_set_x.shape[0]
-    # n_test_batches = test_set_x.shape[0]
-
     n_train_batches //= batch_size
     n_valid_batches //= batch_size
     n_test_batches //= batch_size
@@ -363,26 +359,6 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #)
     test_out = class8_313_rh.output#abstract_conv.bilinear_upsampling(class8_ab.output, 4)
 
-    #loss8_313 = class8_313_rh.output
-
-
-    # test_out_pre = (class8_ab.output).repeat(2, axis=2).repeat(2, axis=3)
-    # test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
-
-
-    # test_out_pre = (convrelu8_3.output).repeat(2, axis=2).repeat(2, axis=3)
-    # test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
-
-    # test_conv = ConvReLU(
-    #    rng,
-    #    input=test_out,
-    #    image_shape=(batch_size, 256, dim_in, dim_in),
-    #    filter_shape=(2, 256, 3, 3),
-    #    border_mode=1
-    # )
-
-
-
     cost = T.sqrt(T.mean(T.square(T.flatten(data_ab - test_out*prior_boost.output))))
     """
     # create a function to compute the mistakes that are made by the model
@@ -527,7 +503,5 @@ def colorization(learning_rate=0.1, n_epochs=200,
 
     # Print out summary
     print('Optimization complete.')
-    # print('Best validation error of %f %% obtained at iteration %i, '
-    #      'with test performance %f %%' %
-    #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
+    print('Best validation error of %f %% obtained at iteration %i, ' 'with test performance %f %%' %(best_validation_loss * 100., best_iter + 1, test_score * 100.))
     return output_model(0)
