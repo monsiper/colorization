@@ -17,7 +17,7 @@ def image_maker(video_name):
         count += 1
         
 def video_maker(images, outimg=None, fps=5, size=None,
-               is_color=True, format="XVID"):
+               is_color=True, format="MJPG"):
     """
     Create a video from a list of images.
     outvid      output video
@@ -30,7 +30,7 @@ def video_maker(images, outimg=None, fps=5, size=None,
     from cv2 import VideoWriter, VideoWriter_fourcc, imread, resize
     fourcc = VideoWriter_fourcc(*format)
     vid = None
-    outvid='result.mp4'
+    outvid='result.avi'
     for image in images:
         if not os.path.exists(image):
             raise FileNotFoundError(image)
