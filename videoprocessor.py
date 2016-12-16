@@ -40,10 +40,12 @@ def video_maker(images, outimg=None, fps=25, size=None,
             vid.write(img)
         except:
             pass 
-        vid.write(img)
     vid.release()
     return vid
-L=image_maker(video_name)
+L=image_maker('test_video.mp4')
+print ("extracted frames, now creating video......")
+video_maker(L, outimg=None, fps=25, size=None,
+               is_color=True, format="MJPG")
 
     
 
