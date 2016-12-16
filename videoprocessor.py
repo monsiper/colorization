@@ -16,7 +16,7 @@ def image_maker(video_name):
         cv2.imwrite("frame%d.jpg" % count, image)     
         count += 1
         
-def video_maker(images, outimg=None, fps=5, size=None,
+def video_maker(images, outimg=None, fps=25, size=None,
                is_color=True, format="MJPG"):
     """
     Create a video from a list of images.
