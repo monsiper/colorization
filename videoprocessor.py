@@ -1,4 +1,4 @@
-def make_images(video_name):
+def image_maker(video_name):
     """
     Create list of images from video, and store the images 
     in the current directory.
@@ -16,7 +16,7 @@ def make_images(video_name):
         cv2.imwrite("frame%d.jpg" % count, image)     
         count += 1
         
-def make_video(images, outimg=None, fps=5, size=None,
+def video_maker(images, outimg=None, fps=5, size=None,
                is_color=True, format="XVID"):
     """
     Create a video from a list of images.
