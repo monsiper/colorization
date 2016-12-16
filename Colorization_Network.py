@@ -350,13 +350,15 @@ class colorization(object):
         batch_size=1, 
         dim_in=256, 
         verbose=True, 
-        train_batches=1
+        train_batches=1,
+        batch_ind=1,
+        batch_num=4
     ):
         
         if not os.path.isdir(dir_name):
             download_images(dir_name, 221)
             prepare_image_sets(dir_name, batch_size=200)
-        self.train_set_x, self.train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=5)
+        self.train_set_x, self.train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_ind=batch_ind,batch_num=batch_num)
         # Convert raw dataset to Theano shared variables.
         self.valid_set_x = self.train_set_x
     
@@ -439,9 +441,10 @@ class colorization(object):
         self,
         ind = 1,
         dir_name='./data/',
-        ds_rate=None
+        ds_rate=None,
+        batch_ind=1
         ):
-        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=ind)
+        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_ind=batch_ind,batch_num=1)
         self.n_test_batches = self.test_set_x.get_value(borrow=True).shape[0]
         self.n_test_batches //= self.batch_size
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
