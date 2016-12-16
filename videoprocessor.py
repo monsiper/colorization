@@ -25,7 +25,7 @@ def video_maker(images, outimg=None, fps=5, size=None,
     fps         frame per second
     size        size of each frame
     is_color    color
-    format      
+    format      four character code of the format. 
     """
     from cv2 import VideoWriter, VideoWriter_fourcc, imread, resize
     fourcc = VideoWriter_fourcc(*format)
@@ -44,6 +44,7 @@ def video_maker(images, outimg=None, fps=5, size=None,
         vid.write(img)
     vid.release()
     return vid
+    
     
 
     
