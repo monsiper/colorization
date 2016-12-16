@@ -383,7 +383,7 @@ class ConvSubSample(object):
         self.output = T.concatenate([conv_out_first, conv_out_second], axis=1)
 
 def dec_net_out_to_rgb(image_net_out_flattened, data_l):
-    #image_net_out is a tensor of shape (313,64,64) and data_l is a tensor of shape (1,64,64)
+    #image_net_out is a flattened vector of size 4096*313 and data_l is a tensor of shape (1,64,64)
     ref_Qcolor_bins = numpy.load('pts_in_hull.npy')
     data_ab = numpy.dot(image_net_out_flattened.reshape(4096,313), ref_Qcolor_bins)
     data_a_chan = (data_ab[:,0]).reshape(1,64,64)
