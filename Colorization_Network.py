@@ -15,10 +15,18 @@ from project_nn import LogisticRegression, HiddenLayer, ConvReLU, DeConvReLU, tr
     BatchNorm, Colorization_Softmax, Colorization_Decoding, ConvSubSample,Colorization_PriorBoost, Conv
 
 
-class colorization
-    def __init__(self,learning_rate=0.1, n_epochs=200,
-                 ds_rate=None,
-                 nkerns=[20, 50], batch_size=500, num_augment=80000, dim_in=256, verbose=True, dir_name='data',train_batches=1):
+class colorization(object):
+    def __init__(self,
+                 learning_rate=0.1, 
+                 n_epochs=200,
+                 ds_rate=None, 
+                 batch_size=500, 
+                 num_augment=80000, 
+                 dim_in=256, 
+                 verbose=True, 
+                 dir_name='data',
+                 train_batches=1
+                ):
         """ Demonstrates lenet on MNIST dataset
     
         :type learning_rate: float
@@ -35,76 +43,35 @@ class colorization
         :param nkerns: number of kernels on each layer
         """
         
-        rng = numpy.random.RandomState(23455)
+        self.rng = numpy.random.RandomState(23455)
     
-        new_path = os.path.join(
-            os.path.split(__file__)[0], dir_name)
-        if not os.path.isdir(new_path):
-            download_images(dir_name, 221)
-            prepare_image_sets(dir_name, batch_size=200)
-        # train_set, valid_set, test_set =
-        train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=1)
-        test_set_x, test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=2)
-        # Convert raw dataset to Theano shared variables.
-        #test_set_x = train_set_x
-        #test_set_y = train_set_y
-        valid_set_x = train_set_x
-        # test_set_x = shared_dataset(train_set_l_mat)
-        # test_set_y = shared_dataset(train_set_ab_mat)
-        # test_set_x, test_set_y = shared_dataset(test_set)
-        # valid_set_x, valid_set_y = shared_dataset(valid_set)
-        # train_set_x, train_set_y = shared_dataset(train_set)
-    
-        print('Current training data size is %i' % train_set_x.get_value(borrow=True).shape[0])
-        print('Current validation data size is %i' % valid_set_x.get_value(borrow=True).shape[0])
-        print('Current test data size is %i' % test_set_x.get_value(borrow=True).shape[0])
-    
-        # print('Current training data size is %i' % train_set_x.shape[0])
-        # print('Current validation data size is %i' % valid_set_x.shape[0])
-        # print('Current test data size is %i' % test_set_x.shape[0])
-    
-        # compute number of minibatches for training, validation and testing
-        n_train_batches = train_set_x.get_value(borrow=True).shape[0]
-        n_valid_batches = valid_set_x.get_value(borrow=True).shape[0]
-        n_test_batches = test_set_x.get_value(borrow=True).shape[0]
-    
-        # n_train_batches = train_set_x.shape[0]
-        # n_valid_batches = valid_set_x.shape[0]
-        # n_test_batches = test_set_x.shape[0]
-    
-        n_train_batches //= batch_size
-        n_valid_batches //= batch_size
-        n_test_batches //= batch_size
-    
-        # allocate symbolic variables for the data
-        index = T.lscalar()  # index to a [mini]batch
+        
+    def build_model(self,
+                    batch_size=1,
+                    dim_in=256
+                    ):
+        
+        self.dim_in = dim_in
+        self.batch_size=batch_size
     
         # start-snippet-1
-        x = T.matrix('x')  # the data is presented as rasterized images
-        y = T.matrix('y')  # the labels are presented as 1D vector of
-        # [int] labels
+        self.x = T.matrix('x')  # the data is presented as rasterized images
+        self.y = T.matrix('y')  # the labels are presented as 1D vector of
+        
         ######################
         # BUILD ACTUAL MODEL #
         ######################
         print('... building the model')
-        bw_input = x.reshape((batch_size, 1, dim_in, dim_in)) - 50
-        data_ab_enc = y.reshape((batch_size, 313, 64, 64))
+        self.bw_input = self.x.reshape((batch_size, 1, dim_in, dim_in)) - 50
+        self.data_ab_enc = self.y.reshape((batch_size, 313, 64, 64))
     
         #######################
         #####   subsample ab space  ######
         #######################
-    
-        data_ab_ss = ConvSubSample(
-            input=data_ab_enc,
-            filter_shape=(1, 1, 1, 1),
-            image_shape=(batch_size, 1, dim_in, dim_in),
-            border_mode=0,
-            conv_stride=(4, 4)
-        )
         
-        prior_boost = Colorization_PriorBoost(
-            rng,
-            input = data_ab_enc,
+        self.prior_boost = Colorization_PriorBoost(
+            self.rng,
+            input = self.data_ab_enc,
             batch_size=batch_size,
             gamma=0,
             verbose=True
@@ -114,238 +81,237 @@ class colorization
         #######################
         #####   conv_1   ######
         #######################
-        convrelu1_1 = ConvReLU(
-            rng,
-            input=bw_input,
+        self.convrelu1_1 = ConvReLU(
+            self.rng,
+            input=self.bw_input,
             image_shape=(batch_size, 1, dim_in, dim_in),
             filter_shape=(64, 1, 3, 3),
             border_mode=1
         )
-        convrelu1_2 = ConvReLU(
-            rng,
-            input=convrelu1_1.output,
+        self.convrelu1_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu1_1.output,
             image_shape=(batch_size, 64, dim_in, dim_in),
             filter_shape=(64, 64, 3, 3),
             border_mode=1,
             conv_stride=(2, 2)
         )
-        bn_1 = BatchNorm(rng,
-                         convrelu1_2.output,
-                         image_shape=(batch_size, 64, dim_in / 2, dim_in / 2)
-                         )
+        self.bn_1 = BatchNorm(
+                        self.rng,
+                        self.convrelu1_2.output,
+                        image_shape=(batch_size, 64, dim_in / 2, dim_in / 2)
+        )
         #######################
         #####   conv_2   ######
         #######################
     
-        convrelu2_1 = ConvReLU(
-            rng,
-            input=bn_1.output,
+        self.convrelu2_1 = ConvReLU(
+            self.rng,
+            input=self.bn_1.output,
             image_shape=(batch_size, 64, dim_in / 2, dim_in / 2),
             filter_shape=(128, 64, 3, 3),
             border_mode=1
         )
-        convrelu2_2 = ConvReLU(
-            rng,
-            input=convrelu2_1.output,
+        self.convrelu2_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu2_1.output,
             image_shape=(batch_size, 128, dim_in / 2, dim_in / 2),
             filter_shape=(128, 128, 3, 3),
             border_mode=1,
             conv_stride=(2, 2)
         )
-        bn_2 = BatchNorm(rng,
-                         convrelu2_2.output,
-                         image_shape=(batch_size, 128, dim_in / 2 / 2, dim_in / 2 / 2)
-                         )
+        self.bn_2 = BatchNorm(
+            self.rng,
+            self.convrelu2_2.output,
+            image_shape=(batch_size, 128, dim_in / 2 / 2, dim_in / 2 / 2)
+        )
         #######################
         #####   conv_3   ######
         #######################
     
-        convrelu3_1 = ConvReLU(
-            rng,
-            input=bn_2.output,
+        self.convrelu3_1 = ConvReLU(
+            self.rng,
+            input=self.bn_2.output,
             image_shape=(batch_size, 128, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 128, 3, 3),
             border_mode=1
         )
-        convrelu3_2 = ConvReLU(
-            rng,
-            input=convrelu3_1.output,
+        self.convrelu3_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu3_1.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
             border_mode=1
         )
-        convrelu3_3 = ConvReLU(
-            rng,
-            input=convrelu3_2.output,
+        self.convrelu3_3 = ConvReLU(
+            self.rng,
+            input=self.convrelu3_2.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
             border_mode=1,
             conv_stride=(2, 2)
         )
-        bn_3 = BatchNorm(rng,
-                         convrelu3_3.output,
-                         image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
-                         )
+        self.bn_3 = BatchNorm(
+            self.rng,
+            self.convrelu3_3.output,
+            image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+        )
     
         #######################
         #####   conv_4   ######
         #######################
     
-        convrelu4_1 = ConvReLU(
-            rng,
-            input=bn_3.output,
+        self.convrelu4_1 = ConvReLU(
+            self.rng,
+            input=self.bn_3.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 256, 3, 3),
             border_mode=1
         )
-        convrelu4_2 = ConvReLU(
-            rng,
-            input=convrelu4_1.output,
+        self.convrelu4_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu4_1.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=1
         )
-        convrelu4_3 = ConvReLU(
-            rng,
-            input=convrelu4_2.output,
+        self.convrelu4_3 = ConvReLU(
+            self.rng,
+            input=self.convrelu4_2.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=1
         )
-        bn_4 = BatchNorm(rng,
-                         convrelu4_3.output,
-                         image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
-                         )
+        self.bn_4 = BatchNorm(
+            self.rng,
+            self.convrelu4_3.output,
+            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+        )
     
         #######################
         #####   conv_5   ######
         #######################
     
-        convrelu5_1 = ConvReLU(
-            rng,
-            input=bn_4.output,
+        self.convrelu5_1 = ConvReLU(
+            self.rng,
+            input=self.bn_4.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
             conv_dilation=(2, 2)
         )
-        convrelu5_2 = ConvReLU(
-            rng,
-            input=convrelu5_1.output,
+        self.convrelu5_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu5_1.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
             conv_dilation=(2, 2)
         )
-        convrelu5_3 = ConvReLU(
-            rng,
-            input=convrelu5_2.output,
+        self.convrelu5_3 = ConvReLU(
+            self.rng,
+            input=self.convrelu5_2.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
             conv_dilation=(2, 2)
         )
-        bn_5 = BatchNorm(rng,
-                         convrelu5_3.output,
-                         image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
-                         )
+        self.bn_5 = BatchNorm(
+            self.rng,
+            self.convrelu5_3.output,
+            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+        )
     
         #######################
         #####   conv_6   ######
         #######################
     
-        convrelu6_1 = ConvReLU(
-            rng,
-            input=bn_5.output,
+        self.convrelu6_1 = ConvReLU(
+            self.rng,
+            input=self.bn_5.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
             conv_dilation=(2, 2)
         )
-        convrelu6_2 = ConvReLU(
-            rng,
-            input=convrelu6_1.output,
+        self.convrelu6_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu6_1.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
             conv_dilation=(2, 2)
         )
-        convrelu6_3 = ConvReLU(
-            rng,
-            input=convrelu6_2.output,
+        self.convrelu6_3 = ConvReLU(
+            self.rng,
+            input=self.convrelu6_2.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
             conv_dilation=(2, 2)
         )
-        bn_6 = BatchNorm(rng,
-                         convrelu6_3.output,
-                         image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
-                         )
+        self.bn_6 = BatchNorm(
+            self.rng,
+            self.convrelu6_3.output,
+            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+        )
     
         #######################
         #####   conv_7   ######
         #######################
     
-        convrelu7_1 = ConvReLU(
-            rng,
-            input=bn_6.output,
+        self.convrelu7_1 = ConvReLU(
+            self.rng,
+            input=self.bn_6.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=1
         )
-        convrelu7_2 = ConvReLU(
-            rng,
-            input=convrelu7_1.output,
+        self.convrelu7_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu7_1.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=1
         )
-        convrelu7_3 = ConvReLU(
-            rng,
-            input=convrelu7_2.output,
+        self.convrelu7_3 = ConvReLU(
+            self.rng,
+            input=self.convrelu7_2.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(256, 512, 3, 3),
             border_mode=1
         )
-        bn_7 = BatchNorm(rng,
-                         convrelu7_3.output,
-                         image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
-                         )
+        self.bn_7 = BatchNorm(
+            self.rng,
+            self.convrelu7_3.output,
+            image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+        )
     
         #######################
         #####   conv_8   ######
         #######################
     
-        convrelu8_1 = DeConvReLU(
-            rng,
-            input=bn_7.output,
+        self.convrelu8_1 = DeConvReLU(
+            self.rng,
+            input=self.bn_7.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 4, 4),
             border_mode=1,
             conv_stride=(2, 2)
         )
     
-        convrelu8_2 = ConvReLU(
-            rng,
-            input=convrelu8_1.output,
+        self.convrelu8_2 = ConvReLU(
+            self.rng,
+            input=self.convrelu8_1.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
             border_mode=1
         )
-        convrelu8_3 = ConvReLU(
-            rng,
-            input=convrelu8_2.output,
+        self.convrelu8_3 = ConvReLU(
+            self.rng,
+            input=self.convrelu8_2.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
-            border_mode=1
-        )
-            
-        conv8_313 = Conv(
-            rng,
-            input=convrelu8_2.output,
-            image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
-            filter_shape=(313, 256, 3, 3),
             border_mode=1
         )
     
@@ -354,9 +320,9 @@ class colorization
         #####   Softmax   ######
         ########################
     
-        class8_313_rh = Colorization_Softmax(
-            rng,
-            input=convrelu8_3.output,
+        self.class8_313_rh = Colorization_Softmax(
+            self.rng,
+            input=self.convrelu8_3.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(313, 256, 1, 1),
             border_mode=0
@@ -366,68 +332,53 @@ class colorization
         #####   Decoding   ######
         #########################
     
-        #class8_ab = Colorization_Decoding(
-        #    rng,
-        #    input=class8_313_rh.output,
-        #    image_shape=(batch_size, 313, dim_in / 2 / 2, dim_in / 2 / 2),
-        #    filter_shape=(2, 313, 1, 1),
-        #    border_mode=0
-        #)
-        test_out = class8_313_rh.output#abstract_conv.bilinear_upsampling(class8_ab.output, 4)
-        
-        #loss8_313 = class8_313_rh.output    
-                
+        self.output = self.class8_313_rh.output
     
-        # test_out_pre = (class8_ab.output).repeat(2, axis=2).repeat(2, axis=3)
-        # test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
-    
-    
-        # test_out_pre = (convrelu8_3.output).repeat(2, axis=2).repeat(2, axis=3)
-        # test_out = (test_out_pre).repeat(2, axis=2).repeat(2, axis=3)
-    
-        # test_conv = ConvReLU(
-        #    rng,
-        #    input=test_out,
-        #    image_shape=(batch_size, 256, dim_in, dim_in),
-        #    filter_shape=(2, 256, 3, 3),
-        #    border_mode=1
-        # )
-    
-        net_out_for_cost_func = T.log((class8_313_rh.output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
-        data_ab_enc_for_cost_func = data_ab_enc.reshape((batch_size, 4096, 313))
-        #cost = T.sqrt(T.mean(T.square(T.flatten(data_ab - test_out*prior_boost.output))))
-        cost = -(((prior_boost.output).reshape((batch_size,4096))*(net_out_for_cost_func*data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)).sum()
-    
-        """
-        # create a function to compute the mistakes that are made by the model
-        test_model = theano.function(
-            [index],
-            cost,#T.mean(T.neq(input_x, final.output)),
-            givens={
-                x: test_set_x[index * batch_size: (index + 1) * batch_size],
-                y: test_set_y[index * batch_size: (index + 1) * batch_size]
-            }
-        )
-        validate_model = theano.function(
-            [index],
-            cost,#T.mean(T.neq(input_x, final.output)),
-            givens={
-                x: valid_set_x[index * batch_size: (index + 1) * batch_size],
-                y: valid_set_y[index * batch_size: (index + 1) * batch_size]
-            }
-        )
-        """
-        output_model = theano.function(
-            [index],
-            [test_out,bw_input,prior_boost.output,data_ab_enc],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
-            givens={
-                x: test_set_x[index * batch_size: (index + 1) * batch_size],
-                y: test_set_y[index * batch_size: (index + 1) * batch_size]
-            }
-        )
         # create a list of all model parameters to be fit by gradient descent
-        params = convrelu1_1.params + convrelu1_2.params + bn_1.params + convrelu2_1.params + convrelu2_2.params + bn_2.params + convrelu3_1.params + convrelu3_2.params + convrelu3_3.params + bn_3.params + convrelu4_1.params + convrelu4_2.params + convrelu4_3.params + bn_4.params + convrelu5_1.params + convrelu5_2.params + convrelu5_3.params + bn_5.params + convrelu6_1.params + convrelu6_2.params + convrelu6_3.params + bn_6.params + convrelu7_1.params + convrelu7_2.params + convrelu7_3.params + bn_7.params + convrelu8_1.params + convrelu8_2.params + convrelu8_3.params + class8_313_rh.params# + class8_ab.params
+        self.params = self.convrelu1_1.params + self.convrelu1_2.params + self.bn_1.params + self.convrelu2_1.params + self.convrelu2_2.params + self.bn_2.params + self.convrelu3_1.params + self.convrelu3_2.params + self.convrelu3_3.params + self.bn_3.params + self.convrelu4_1.params + self.convrelu4_2.params + self.convrelu4_3.params + self.bn_4.params + self.convrelu5_1.params + self.convrelu5_2.params + self.convrelu5_3.params + self.bn_5.params + self.convrelu6_1.params + self.convrelu6_2.params + self.convrelu6_3.params + self.bn_6.params + self.convrelu7_1.params + self.convrelu7_2.params + self.convrelu7_3.params + self.bn_7.params + self.convrelu8_1.params + self.convrelu8_2.params + self.convrelu8_3.params + self.class8_313_rh.params
     
+        self.net_out_for_cost_func = T.log((self.class8_313_rh.output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
+        self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
+        self.cost = -(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)).sum()
+    
+    def train_network(
+        self,
+        dir_name='./data/',
+        learning_rate=0.1,
+        n_epochs=200,
+        ds_rate=None, 
+        batch_size=1, 
+        dim_in=256, 
+        verbose=True, 
+        train_batches=1
+    ):
+        
+        #new_path = os.path.join(
+        #    os.path.split(__file__)[0], dir_name)
+        if not os.path.isdir(dir_name):
+            download_images(dir_name, 221)
+            prepare_image_sets(dir_name, batch_size=200)
+        self.train_set_x, self.train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=1)
+        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=2)
+        # Convert raw dataset to Theano shared variables.
+        self.valid_set_x = self.train_set_x
+    
+        print('Current training data size is %i' % self.train_set_x.get_value(borrow=True).shape[0])
+        print('Current validation data size is %i' % self.valid_set_x.get_value(borrow=True).shape[0])
+        print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
+    
+        # compute number of minibatches for training, validation and testing
+        self.n_train_batches = self.train_set_x.get_value(borrow=True).shape[0]
+        self.n_valid_batches = self.valid_set_x.get_value(borrow=True).shape[0]
+        self.n_test_batches = self.test_set_x.get_value(borrow=True).shape[0]
+    
+        self.n_train_batches //= self.batch_size
+        self.n_valid_batches //= self.batch_size
+        self.n_test_batches //= self.batch_size
+    
+        # allocate symbolic variables for the data
+        self.index = T.lscalar() 
+        
         def RMSprop(cost, params, lr=learning_rate, rho=0.9, epsilon=1e-6):
             grads = T.grad(cost=cost, wrt=params)
             updates = []
@@ -440,15 +391,15 @@ class colorization
                 updates.append((p, p - lr * g))
             return updates
     
-        updates = RMSprop(cost, params)
+        self.updates = RMSprop(self.cost, self.params)
     
-        train_model = theano.function(
-            [index],
-            cost,
-            updates=updates,
+        self.train_model = theano.function(
+            [self.index],
+            self.cost,
+            updates=self.updates,
             givens={
-                x: train_set_x[index * batch_size: (index + 1) * batch_size],
-                y: train_set_y[index * batch_size: (index + 1) * batch_size]
+                self.x: self.train_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
+                self.y: self.train_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
     
@@ -463,7 +414,7 @@ class colorization
         # found
         improvement_threshold = 0.995  # a relative improvement of this much is
         # considered significant
-        validation_frequency = min(n_train_batches, patience // 2)
+        validation_frequency = min(self.n_train_batches, patience // 2)
     
         best_validation_loss = numpy.inf
         best_iter = 0
@@ -477,94 +428,35 @@ class colorization
             epoch = epoch + 1
             for minibatch_index in range(1):
     
-                iter = (epoch - 1) * n_train_batches + minibatch_index
+                iter = (epoch - 1) * self.n_train_batches + minibatch_index
     
-                cost_ij = train_model(minibatch_index)
+                cost_ij = self.train_model(minibatch_index)
     
-                if (iter % n_train_batches == 0) and verbose:
+                if (iter % self.n_train_batches == 0) and verbose:
                     print('training @ iter = ', iter)
-                    print('epoch %i, minibatch %i/%i, validation error %f %%' %
+                    print('epoch %i, minibatch %i/%i, loss of %f %%' %
                           (epoch,
                            minibatch_index + 1,
-                           n_train_batches,
-                           cost_ij * 100.))
-                """
-                if (iter + 1) % validation_frequency == 0:
-    
-                    # compute zero-one loss on validation set
-                    validation_losses = [validate_model(i) for i
-                                         in range(n_valid_batches)]
-                    this_validation_loss = numpy.mean(validation_losses)
-    
-                    if verbose:
-                        print('epoch %i, minibatch %i/%i, validation error %f %%' %
-                            (epoch,
-                             minibatch_index + 1,
-                             n_train_batches,
-                             this_validation_loss * 100.))
-    
-                    # if we got the best validation score until now
-                    if this_validation_loss < best_validation_loss:
-    
-                        #improve patience if loss improvement is good enough
-                        if this_validation_loss < best_validation_loss *  \
-                           improvement_threshold:
-                            patience = max(patience, iter * patience_increase)
-    
-                        # save best validation score and iteration number
-                        best_validation_loss = this_validation_loss
-                        best_iter = iter
-    
-                        # test it on the test set
-                        test_losses = [
-                            test_model(i)
-                            for i in range(n_test_batches)
-                        ]
-                        test_score = numpy.mean(test_losses)
-    
-                        if verbose:
-                            print(('     epoch %i, minibatch %i/%i, test error of '
-                                   'best model %f %%') %
-                                  (epoch, minibatch_index + 1,
-                                   n_train_batches,
-                                   test_score * 100.))
-    
-                if patience <= iter:
-                    done_looping = True
-                    break
-                """
-            """
-            train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=epoch%train_batches+1)
-            train_model = theano.function(
-                [index],
-                cost,
-                updates=updates,
-                givens={
-                    x: train_set_x[index * batch_size: (index + 1) * batch_size],
-                    y: train_set_y[index * batch_size: (index + 1) * batch_size]
-                }
-            )
-            """
+                           self.n_train_batches,
+                           cost_ij))
             
         end_time = timeit.default_timer()
-    
-        # Retrieve the name of function who invokes train_nn() (caller's name)
-        # curframe = inspect.currentframe()
-        # calframe = inspect.getouterframes(curframe, 2)
-    
         # Print out summary
         print('Optimization complete.')
-        # print('Best validation error of %f %% obtained at iteration %i, '
-        #      'with test performance %f %%' %
-        #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
-        output_model = theano.function(
-            [index],
-                [test_out,bw_input,prior_boost.output,data_ab_enc,y],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
+        
+    def test_network(
+        self,
+        ind = 0
+        ):
+        
+        self.output_model = theano.function(
+            [self.index],
+                [self.output,self.bw_input,self.prior_boost.output,self.data_ab_enc,self.y],
             givens={
-                x: test_set_x[index * batch_size: (index + 1) * batch_size],
-                y: test_set_y[index * batch_size: (index + 1) * batch_size]
+                self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
+                self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
-        return output_model(0)
+        return self.output_model(ind)
     
     
