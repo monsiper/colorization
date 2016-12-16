@@ -6,15 +6,12 @@ def image_maker(video_name):
     """
     vidcap = cv2.VideoCapture(video_name)
     success,image = vidcap.read()
-    count = 0
     success = True
     L=[]
     while success:
         success,image = vidcap.read()
-        #print 'Read a new frame: ', success
-        L.append('frame'+str(count)+'.jpg')
-        cv2.imwrite("frame%d.jpg" % count, image)     
-        count += 1
+        L.append(image)
+    return L 
         
 def video_maker(images, outimg=None, fps=25, size=None,
                is_color=True, format="MJPG"):
@@ -32,19 +29,22 @@ def video_maker(images, outimg=None, fps=25, size=None,
     vid = None
     outvid='result.avi'
     for image in images:
-        if not os.path.exists(image):
-            raise FileNotFoundError(image)
-        img = imread(image)
+        img = image
         if vid is None:
             if size is None:
                 size = img.shape[1], img.shape[0]
             vid = VideoWriter(outvid, fourcc, float(fps), size, is_color)
-        if size[0] != img.shape[1] and size[1] != img.shape[0]:
-            img = resize(img, size)
+        try: 
+            if size[0] != img.shape[1] and size[1] != img.shape[0]:
+                img = resize(img, size)
+            vid.write(img)
+        except:
+            pass 
         vid.write(img)
     vid.release()
     return vid
-    
+L=image_maker(video_name)
+
     
 
     
