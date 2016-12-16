@@ -4,7 +4,7 @@ import theano
 import theano.tensor as T
 from theano.tensor.signal import pool
 from theano.tensor.nnet import conv2d, bn, abstract_conv
-from project_util import download_images, prepare_image_sets, test_encode, test_images
+from project_util import download_images, prepare_image_sets
 import scipy
 import os
 
