@@ -393,16 +393,12 @@ class colorization(object):
         learning_rate=0.0001,
         n_epochs=200,
         ds_rate=None, 
-        batch_size=1, 
         dim_in=256, 
         verbose=True, 
         train_batches=1,
-<<<<<<< HEAD
         batch_ind=1,
-        batch_num=4
-=======
+        batch_num=3,
         type='ADAM'
->>>>>>> 45339573393d5938aaabe5abb101a59ac7734106
     ):
         
         if not os.path.isdir(dir_name):
@@ -423,7 +419,7 @@ class colorization(object):
         self.index = T.lscalar() 
 
         optimizer_engine = optimizer(type=type)
-
+        """
         def RMSprop(cost, params, lr=learning_rate, rho=0.9, epsilon=1e-6):
             grads = T.grad(cost=cost, wrt=params)
             updates = []
@@ -435,8 +431,32 @@ class colorization(object):
                 updates.append((acc, acc_new))
                 updates.append((p, p - lr * g))
             return updates
+        """
+        def adam(cost, params, learning_rate=0.0002, beta1=0.1, beta2=0.001, epsilon=1e-8, gamma=1 - 1e-7):
+            updates = []
+            grads = T.grad(cost, params)
+            t = theano.shared(numpy.float32(1))
+            beta1_decay = (1. - beta1) * gamma ** (t - 1)
     
-        self.updates = optimizer_engine.update(self.cost, self.params)
+            for param_i, g in zip(params, grads):
+                param_val = param_i.get_value(borrow=True)
+                m = theano.shared(numpy.zeros(param_val.shape, dtype=theano.config.floatX))
+                v = theano.shared(numpy.zeros(param_val.shape, dtype=theano.config.floatX))
+    
+                m_biased = (beta1_decay * g) + ((1. - beta1_decay) * m)  #
+                v_biased = (beta2 * g ** 2) + ((1. - beta2) * v)
+                m_hat = m_biased / (1 - (1. - beta1) ** t)
+                v_hat = v_biased / (1 - (1. - beta2) ** t)
+                g_t = m_hat / (T.sqrt(v_hat) + epsilon)
+                param_new = param_i - (learning_rate * g_t)
+
+                updates.append((m, m_biased))
+                updates.append((v, v_biased))
+                updates.append((param_i, param_new))
+            updates.append((t, t + 1.))
+            return updates
+        self.updates = adam(self.cost, self.params)
+        #self.updates = optimizer_engine.update(self.cost, self.params)
     
         self.train_model = theano.function(
             [self.index],
