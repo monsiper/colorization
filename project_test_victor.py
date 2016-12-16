@@ -17,7 +17,7 @@ from project_nn import LogisticRegression, HiddenLayer, ConvReLU, DeConvReLU, tr
 
 def colorization(learning_rate=0.1, n_epochs=200,
                  ds_rate=None,
-                 nkerns=[20, 50], batch_size=500, num_augment=80000, dim_in=256, verbose=True, dir_name='data'):
+                 nkerns=[20, 50], batch_size=500, num_augment=80000, dim_in=256, verbose=True, dir_name='data',train_batches=1):
     """ Demonstrates lenet on MNIST dataset
 
     :type learning_rate: float
@@ -43,9 +43,10 @@ def colorization(learning_rate=0.1, n_epochs=200,
         prepare_image_sets(dir_name, batch_size=200)
     # train_set, valid_set, test_set =
     train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=1)
+    test_set_x, test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=2)
     # Convert raw dataset to Theano shared variables.
-    test_set_x = train_set_x
-    test_set_y = train_set_y
+    #test_set_x = train_set_x
+    #test_set_y = train_set_y
     valid_set_x = train_set_x
     # test_set_x = shared_dataset(train_set_l_mat)
     # test_set_y = shared_dataset(train_set_ab_mat)
@@ -531,7 +532,19 @@ def colorization(learning_rate=0.1, n_epochs=200,
                 done_looping = True
                 break
             """
-    train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=epoch%45+1)
+        """
+        train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=epoch%train_batches+1)
+        train_model = theano.function(
+            [index],
+            cost,
+            updates=updates,
+            givens={
+                x: train_set_x[index * batch_size: (index + 1) * batch_size],
+                y: train_set_y[index * batch_size: (index + 1) * batch_size]
+            }
+        )
+        """
+        
     end_time = timeit.default_timer()
 
     # Retrieve the name of function who invokes train_nn() (caller's name)
@@ -543,5 +556,13 @@ def colorization(learning_rate=0.1, n_epochs=200,
     # print('Best validation error of %f %% obtained at iteration %i, '
     #      'with test performance %f %%' %
     #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
+    output_model = theano.function(
+        [index],
+        [test_out,bw_input,prior_boost.output,data_ab_enc,y],#[prior_boost.output,prior_boost.output*data_ab,bw_input,data_ab],#[bw_input, prior_boost.output, data_ab_ss.output],  # T.mean(T.neq(input_x, final.output)),
+        givens={
+            x: test_set_x[index * batch_size: (index + 1) * batch_size],
+            y: test_set_y[index * batch_size: (index + 1) * batch_size]
+        }
+    )
     return output_model(0)
 

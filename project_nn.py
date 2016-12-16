@@ -863,8 +863,6 @@ class PriorFactor():
 
         if(self.verbose):
             self.print_correction_stats()
-        print(self.prior_factor)
-        print(numpy.shape(self.prior_factor))
         self.output = self.forward(self.input,axis=1).reshape((batch_size,1,64,64))
 
     def forward(self,data_ab_quant,axis=1):
