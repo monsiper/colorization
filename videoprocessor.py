@@ -30,6 +30,7 @@ def make_video(images, outimg=None, fps=5, size=None,
     from cv2 import VideoWriter, VideoWriter_fourcc, imread, resize
     fourcc = VideoWriter_fourcc(*format)
     vid = None
+    outvid='result.mp4'
     for image in images:
         if not os.path.exists(image):
             raise FileNotFoundError(image)
