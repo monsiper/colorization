@@ -385,7 +385,8 @@ class colorization(object):
     
         self.net_out_for_cost_func = T.log((self.network_output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
         self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
-        self.cost = -(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)).sum()
+        self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)))
+        self.cost = self.cost/self.batch_size
     
     def train_network(
         self,
@@ -397,7 +398,7 @@ class colorization(object):
         verbose=True, 
         train_batches=1,
         batch_ind=1,
-        batch_num=3,
+        batch_num=1,
         type='ADAM'
     ):
         
@@ -504,7 +505,20 @@ class colorization(object):
                            minibatch_index + 1,
                            self.n_train_batches,
                            cost_ij))
-            
+            self.train_set_x, self.train_set_y = load_data(dir_name, 
+                                                           theano_shared=True,
+                                                           ds=ds_rate,
+                                                           batch_ind=epoch%(45-batch_num)+1,
+                                                           batch_num=batch_num)
+            self.train_model = theano.function(
+            [self.index],
+            self.cost,
+            updates=self.updates,
+            givens={
+                self.x: self.train_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
+                self.y: self.train_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
+            }
+        )
         end_time = timeit.default_timer()
         # Print out summary
         print('Optimization complete.')
