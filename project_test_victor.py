@@ -42,7 +42,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
         download_images(dir_name, 221)
         prepare_image_sets(dir_name, batch_size=200)
     # train_set, valid_set, test_set =
-    train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate)
+    train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=1)
     # Convert raw dataset to Theano shared variables.
     test_set_x = train_set_x
     test_set_y = train_set_y
@@ -531,6 +531,7 @@ def colorization(learning_rate=0.1, n_epochs=200,
                 done_looping = True
                 break
             """
+    train_set_x, train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=epoch%45+1)
     end_time = timeit.default_timer()
 
     # Retrieve the name of function who invokes train_nn() (caller's name)

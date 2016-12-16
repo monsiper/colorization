@@ -109,7 +109,7 @@ def prepare_image_sets(dir_name, batch_size=10000):
         np.save(new_path + '/test_batch_l_%s.npy' % batch_ind, l_out)
         np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
 
-def load_data(dir_name, theano_shared=True, ds=1):
+def load_data(dir_name, theano_shared=True, ds=1,batch_num=None):
 
     path = os.path.join(
         os.path.split(__file__)[0], dir_name)
@@ -125,15 +125,17 @@ def load_data(dir_name, theano_shared=True, ds=1):
     if not train_batches:
         return 'There is no .npy file in data folder'
 
-    train_set_l = np.load(path + '/test_batch_l_1.npy')
-    train_set_ab = np.load(path + '/test_batch_ab_1.npy')
-
-
-    for i in range(1,len(train_batches)/2):
-        new_set_l = np.load(path + '/test_batch_l_%s.npy'%(i+1))
-        new_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(i+1))
-        train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
-        train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
+    if batch_num==None:
+        train_set_l = np.load(path + '/test_batch_l_1.npy')
+        train_set_ab = np.load(path + '/test_batch_ab_1.npy')
+        for i in range(1,len(train_batches)/2):
+            new_set_l = np.load(path + '/test_batch_l_%s.npy'%(i+1))
+            new_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(i+1))
+            train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
+            train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
+    else:
+        train_set_l = np.load(path + '/test_batch_l_%s.npy'%(batch_num))
+        train_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(batch_num))
 
     np.random.seed(35)
     np.random.shuffle(train_set_l)
