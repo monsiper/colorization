@@ -11,7 +11,7 @@ import os
 import sys
 
 from project_util import shared_dataset, load_data
-from project_nn import LogisticRegression, HiddenLayer, ConvReLU, DeConvReLU, train_nn, drop, \
+from project_nn import  ConvReLU, DeConvReLU,  \
     BatchNorm, Colorization_Softmax, Colorization_Decoding, ConvSubSample,Colorization_PriorBoost, Conv
 
 
@@ -52,7 +52,7 @@ class colorization(object):
                     ):
         
         self.dim_in = dim_in
-        self.batch_size=batch_size
+        self.batch_size = batch_size
     
         # start-snippet-1
         self.x = T.matrix('x')  # the data is presented as rasterized images
@@ -332,19 +332,19 @@ class colorization(object):
         #####   Decoding   ######
         #########################
     
-        self.output = self.class8_313_rh.output
+        self.network_output = self.class8_313_rh.output
     
         # create a list of all model parameters to be fit by gradient descent
         self.params = self.convrelu1_1.params + self.convrelu1_2.params + self.bn_1.params + self.convrelu2_1.params + self.convrelu2_2.params + self.bn_2.params + self.convrelu3_1.params + self.convrelu3_2.params + self.convrelu3_3.params + self.bn_3.params + self.convrelu4_1.params + self.convrelu4_2.params + self.convrelu4_3.params + self.bn_4.params + self.convrelu5_1.params + self.convrelu5_2.params + self.convrelu5_3.params + self.bn_5.params + self.convrelu6_1.params + self.convrelu6_2.params + self.convrelu6_3.params + self.bn_6.params + self.convrelu7_1.params + self.convrelu7_2.params + self.convrelu7_3.params + self.bn_7.params + self.convrelu8_1.params + self.convrelu8_2.params + self.convrelu8_3.params + self.class8_313_rh.params
     
-        self.net_out_for_cost_func = T.log((self.class8_313_rh.output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
+        self.net_out_for_cost_func = T.log((self.network_output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
         self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
         self.cost = -(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)).sum()
     
     def train_network(
         self,
         dir_name='./data/',
-        learning_rate=0.1,
+        learning_rate=0.0001,
         n_epochs=200,
         ds_rate=None, 
         batch_size=1, 
@@ -353,28 +353,19 @@ class colorization(object):
         train_batches=1
     ):
         
-        #new_path = os.path.join(
-        #    os.path.split(__file__)[0], dir_name)
         if not os.path.isdir(dir_name):
             download_images(dir_name, 221)
             prepare_image_sets(dir_name, batch_size=200)
-        self.train_set_x, self.train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=1)
-        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=2)
+        self.train_set_x, self.train_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=5)
         # Convert raw dataset to Theano shared variables.
         self.valid_set_x = self.train_set_x
     
         print('Current training data size is %i' % self.train_set_x.get_value(borrow=True).shape[0])
-        print('Current validation data size is %i' % self.valid_set_x.get_value(borrow=True).shape[0])
-        print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
     
         # compute number of minibatches for training, validation and testing
         self.n_train_batches = self.train_set_x.get_value(borrow=True).shape[0]
-        self.n_valid_batches = self.valid_set_x.get_value(borrow=True).shape[0]
-        self.n_test_batches = self.test_set_x.get_value(borrow=True).shape[0]
     
         self.n_train_batches //= self.batch_size
-        self.n_valid_batches //= self.batch_size
-        self.n_test_batches //= self.batch_size
     
         # allocate symbolic variables for the data
         self.index = T.lscalar() 
@@ -426,7 +417,7 @@ class colorization(object):
         
         while (epoch < n_epochs) and (not done_looping):
             epoch = epoch + 1
-            for minibatch_index in range(1):
+            for minibatch_index in range(self.n_train_batches):
     
                 iter = (epoch - 1) * self.n_train_batches + minibatch_index
     
@@ -434,7 +425,7 @@ class colorization(object):
     
                 if (iter % self.n_train_batches == 0) and verbose:
                     print('training @ iter = ', iter)
-                    print('epoch %i, minibatch %i/%i, loss of %f %%' %
+                    print('epoch %i, minibatch %i/%i, loss of %f' %
                           (epoch,
                            minibatch_index + 1,
                            self.n_train_batches,
@@ -446,12 +437,17 @@ class colorization(object):
         
     def test_network(
         self,
-        ind = 0
+        ind = 1,
+        dir_name='./data/',
+        ds_rate=None
         ):
-        
+        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_num=ind)
+        self.n_test_batches = self.test_set_x.get_value(borrow=True).shape[0]
+        self.n_test_batches //= self.batch_size
+        print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-                [self.output,self.bw_input,self.prior_boost.output,self.data_ab_enc,self.y],
+            [self.network_output,self.bw_input,self.prior_boost.output,self.data_ab_enc,self.y],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
