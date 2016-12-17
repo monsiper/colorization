@@ -14,52 +14,6 @@ from project_util import shared_dataset, load_data
 from project_nn import  ConvReLU, DeConvReLU,  \
     BatchNorm, Colorization_Softmax, Colorization_Decoding,Colorization_PriorBoost, Conv
 
-class optimizer(object):
-    def __init__(self,type='ADAM'):
-        self.type = type
-
-    def adam(cost, params, learning_rate=0.0002, beta1=0.1, beta2=0.001, epsilon=1e-8, gamma=1 - 1e-7):
-        updates = []
-        grads = T.grad(cost, params)
-        t = theano.shared(numpy.float32(1))
-        beta1_decay = (1. - beta1) * gamma ** (t - 1)
-
-        for param_i, g in zip(params, grads):
-            param_val = param_i.get_value(borrow=True)
-            m = theano.shared(numpy.zeros(param_val.shape, dtype=theano.config.floatX))
-            v = theano.shared(numpy.zeros(param_val.shape, dtype=theano.config.floatX))
-
-            m_biased = (beta1_decay * g) + ((1. - beta1_decay) * m)  #
-            v_biased = (beta2 * g ** 2) + ((1. - beta2) * v)
-            m_hat = m_biased / (1 - (1. - beta1) ** t)
-            v_hat = v_biased / (1 - (1. - beta2) ** t)
-            g_t = m_hat / (T.sqrt(v_hat) + epsilon)
-            param_new = param_i - (learning_rate * g_t)
-
-            updates.append((m, m_biased))
-            updates.append((v, v_biased))
-            updates.append((param_i, param_new))
-        updates.append((t, t + 1.))
-        return updates
-
-    def RMSprop(cost, params, lr=0.0001, rho=0.9, epsilon=1e-6):
-        grads = T.grad(cost=cost, wrt=params)
-        updates = []
-        for p, g in zip(params, grads):
-            acc = theano.shared(p.get_value() * 0.)
-            acc_new = rho * acc + (1 - rho) * g ** 2
-            gradient_scaling = T.sqrt(acc_new + epsilon)
-            g = g / gradient_scaling
-            updates.append((acc, acc_new))
-            updates.append((p, p - lr * g))
-        return updates
-
-    def update(self,cost,params):
-        if self.type=='ADAM':
-            return self.adam(cost, params)
-        if self.type=='RMSprop':
-            return self.RMSprop(cost, params)
-
 
 class colorization(object):
     def __init__(self,
@@ -96,8 +50,8 @@ class colorization(object):
     def build_model(self,
                    batch_size=1,
                    dim_in=256,
-                   filename=None
-                   ):
+                   filename=None,
+                   model_type='with_prior_boost'):
         
         if filename==None:
             loaded_objects = []
@@ -114,8 +68,8 @@ class colorization(object):
         self.batch_size = batch_size
     
         # start-snippet-1
-        self.x = T.matrix('x')  # the data is presented as rasterized images
-        self.y = T.matrix('y')  # the labels are presented as 1D vector of
+        self.x = T.matrix('x')  # l space of the input data
+        self.y = T.matrix('y')  # ab space of the input data
         
         ######################
         # BUILD ACTUAL MODEL #
@@ -127,16 +81,16 @@ class colorization(object):
         #######################
         #####   subsample ab space  ######
         #######################
-        
-        self.prior_boost = Colorization_PriorBoost(
-            self.rng,
-            input = self.data_ab_enc,
-            batch_size=batch_size,
-            gamma=0,
-            verbose=True
-        )
-        
-        
+
+        if model_type=='with_prior_boost':
+            self.prior_boost = Colorization_PriorBoost(
+                self.rng,
+                input = self.data_ab_enc,
+                batch_size=batch_size,
+                gamma=0,
+                verbose=True
+            )
+
         #######################
         #####   conv_1   ######
         #######################
@@ -420,15 +374,21 @@ class colorization(object):
         #########################
         #####   Decoding   ######
         #########################
-    
-        self.network_output = self.class8_313_rh.output
-    
         # create a list of all model parameters to be fit by gradient descent
-        self.params = self.convrelu1_1.params + self.convrelu1_2.params + self.bn_1.params + self.convrelu2_1.params + self.convrelu2_2.params + self.bn_2.params + self.convrelu3_1.params + self.convrelu3_2.params + self.convrelu3_3.params + self.bn_3.params + self.convrelu4_1.params + self.convrelu4_2.params + self.convrelu4_3.params + self.bn_4.params + self.convrelu5_1.params + self.convrelu5_2.params + self.convrelu5_3.params + self.bn_5.params + self.convrelu6_1.params + self.convrelu6_2.params + self.convrelu6_3.params + self.bn_6.params + self.convrelu7_1.params + self.convrelu7_2.params + self.convrelu7_3.params + self.bn_7.params + self.convrelu8_1.params + self.convrelu8_2.params + self.convrelu8_3.params + self.class8_313_rh.params
+        self.params = self.convrelu1_1.params + self.convrelu1_2.params + self.bn_1.params + self.convrelu2_1.params + self.convrelu2_2.params + \
+                      self.bn_2.params + self.convrelu3_1.params + self.convrelu3_2.params + self.convrelu3_3.params + self.bn_3.params + \
+                      self.convrelu4_1.params + self.convrelu4_2.params + self.convrelu4_3.params + self.bn_4.params + self.convrelu5_1.params + \
+                      self.convrelu5_2.params + self.convrelu5_3.params + self.bn_5.params + self.convrelu6_1.params + self.convrelu6_2.params + \
+                      self.convrelu6_3.params + self.bn_6.params + self.convrelu7_1.params + self.convrelu7_2.params + self.convrelu7_3.params + \
+                      self.bn_7.params + self.convrelu8_1.params + self.convrelu8_2.params + self.convrelu8_3.params + self.class8_313_rh.params
     
-        self.net_out_for_cost_func = T.log((self.network_output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
-        self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
-        self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)))
+        self.net_out_for_cost_func = T.log((self.class8_313_rh.output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
+        #self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
+        if model_type=='with_prior_boost':
+            self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
+        elif model_type=='without_prior_boost':
+            self.cost = T.mean(-(((self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
+
 
     def train_network(
         self,
@@ -554,7 +514,7 @@ class colorization(object):
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-            [self.network_output,self.bw_input,self.prior_boost.output,self.data_ab_enc,self.y],
+            [self.class8_313_rh.output,self.bw_input,self.prior_boost.output,self.data_ab_enc,self.y],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
