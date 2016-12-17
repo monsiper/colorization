@@ -386,7 +386,7 @@ class colorization(object):
         self.net_out_for_cost_func = T.log((self.network_output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
         self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
         self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)))
-        self.cost = self.cost/self.batch_size
+        #self.cost = self.cost/self.batch_size
     
     def train_network(
         self,

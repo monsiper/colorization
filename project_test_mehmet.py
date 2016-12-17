@@ -508,3 +508,4 @@ def colorization(learning_rate=0.1, n_epochs=200,
     #      (best_validation_loss * 100., best_iter + 1, test_score * 100.))
     return output_model(0)
 
+prepare_image_sets(batch_size=500, dataset_type='frames')

@@ -57,57 +57,96 @@ def download_images(dir_name, num_of_pages):
             with open(complete_path, "wb") as code:
                 code.write(data)
 
-def prepare_image_sets(dir_name, batch_size=10000):
+def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training'):
     """Converts .jpeg images into numpy matrices(each row corresponds to one image) and saves
      them in batches consisting of batch_size images"""
 
-    path = os.path.join(
-        os.path.split(__file__)[0], dir_name+'/raw')
-    new_path = os.path.join(
-        os.path.split(__file__)[0], dir_name)
+    if dataset_type=='training':
 
-    if not os.path.isdir(path):
-        return "Data directory doesn't exist"
+        path = os.path.join(
+            os.path.split(__file__)[0], dir_name+'/raw')
+        new_path = os.path.join(
+            os.path.split(__file__)[0], dir_name)
 
-    l_out, ab_enc_out = 0, 0
-    batch_reset = True
-    batch_ind = 0
-    img_ind = 0
-    for image in os.listdir(path):
-        if not image==".DS_Store" and not os.path.splitext(image)=='.npy':
-            with open(path + '/' + image, 'r+b') as f:
-                with Image.open(f) as img_f:
-                    resized_im = resizeimage.resize_cover(img_f, [256, 256])
-                    # resized_im.save(path + '/' + 'image-%s.jpeg' % index, img_f.format)
-                    img_rgb = (np.array(resized_im))
-                    if len(img_rgb.shape)==3:
-                        img_ind += 1
-                        img_lab = color.rgb2lab(img_rgb[:,:,0:3])
-                        l = img_lab[:, :, 0].flatten() # Slicing to get L data
-                        a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
-                        b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
+        if not os.path.isdir(path):
+            return "Data directory doesn't exist"
 
-                        if batch_reset:
-                            l_out = np.array(l, np.float32)
-                            ab_enc_out = encode_ab_to_Q(a,b)
-                            batch_reset = False
-                        else:
-                            new_l = l.astype(dtype=np.float32)
-                            new_ab_enc = encode_ab_to_Q(a,b)
-                            l_out = np.vstack((l_out,new_l))
-                            ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
+        l_out, ab_enc_out = 0, 0
+        batch_reset = True
+        batch_ind = 0
+        img_ind = 0
+        for image in os.listdir(path):
+            if not image==".DS_Store" and not os.path.splitext(image)=='.npy':
+                with open(path + '/' + image, 'r+b') as f:
+                    with Image.open(f) as img_f:
+                        resized_im = resizeimage.resize_cover(img_f, [256, 256])
+                        # resized_im.save(path + '/' + 'image-%s.jpeg' % index, img_f.format)
+                        img_rgb = (np.array(resized_im))
+                        if len(img_rgb.shape)==3:
+                            img_ind += 1
+                            img_lab = color.rgb2lab(img_rgb[:,:,0:3])
+                            l = img_lab[:, :, 0].flatten() # Slicing to get L data
+                            a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
+                            b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
 
-                        if img_ind%batch_size==0 and img_ind!=0:
-                            batch_ind += 1
-                            print('Creating matrices for batch number %s' %batch_ind)
-                            np.save(new_path + '/test_batch_l_%s.npy' %batch_ind, l_out)
-                            np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
-                            batch_reset = True
+                            if batch_reset:
+                                l_out = np.array(l, np.float32)
+                                ab_enc_out = encode_ab_to_Q(a,b)
+                                batch_reset = False
+                            else:
+                                new_l = l.astype(dtype=np.float32)
+                                new_ab_enc = encode_ab_to_Q(a,b)
+                                l_out = np.vstack((l_out,new_l))
+                                ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
 
-    if not batch_reset:
-        batch_ind += 1
-        np.save(new_path + '/test_batch_l_%s.npy' % batch_ind, l_out)
-        np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
+                            if img_ind%batch_size==0 and img_ind!=0:
+                                batch_ind += 1
+                                print('Creating matrices for batch number %s' %batch_ind)
+                                np.save(new_path + '/test_batch_l_%s.npy' %batch_ind, l_out)
+                                np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
+                                batch_reset = True
+
+        if not batch_reset:
+            batch_ind += 1
+            np.save(new_path + '/test_batch_l_%s.npy' % batch_ind, l_out)
+            np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
+
+    elif dataset_type=='frames':
+        path = ('/Users/monsiper/Downloads/frames/')
+        new_path = ('/Users/monsiper/Downloads/frames/processed/')
+
+        l_out = 0
+        batch_reset = True
+        batch_ind = 0
+        img_ind = 0
+        for image in os.listdir(path):
+            if not image == ".DS_Store" and not image == 'processed':
+                with open(path + image, 'r+b') as f:
+                    with Image.open(f) as img_f:
+                        resized_im = resizeimage.resize_cover(img_f, [256, 256])
+                        # resized_im.save(path + '/' + 'image-%s.jpeg' % index, img_f.format)
+                        img_rgb = (np.array(resized_im))
+                        if len(img_rgb.shape) == 3:
+                            img_ind += 1
+                            img_lab = color.rgb2lab(img_rgb[:, :, 0:3])
+                            l = img_lab[:, :, 0].flatten()  # Slicing to get L data
+
+                            if batch_reset:
+                                l_out = np.array(l, np.float32)
+                                batch_reset = False
+                            else:
+                                new_l = l.astype(dtype=np.float32)
+                                l_out = np.vstack((l_out, new_l))
+
+                            if img_ind % batch_size == 0 and img_ind != 0:
+                                batch_ind += 1
+                                print('Creating matrices for batch number %s' % batch_ind)
+                                np.save(new_path + '/frame_batch_l_%s.npy' % batch_ind, l_out)
+                                batch_reset = True
+
+        if not batch_reset:
+            batch_ind += 1
+            np.save(new_path + '/frame_batch_l_%s.npy' % batch_ind, l_out)
 
 def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1):
 
