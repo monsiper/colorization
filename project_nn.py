@@ -360,7 +360,7 @@ def dec_net_out_to_rgb(image_net_out, data_l, temp=0.4):
     #image_net_out is a tensor of shape (313,256,256) and data_l is a tensor of shape (1,256,256)
     ref_Qcolor_bins = numpy.load('pts_in_hull.npy')
     image_net_out_matrix = numpy.exp(numpy.log(image_net_out.transpose(1,2,0).reshape(256*256, 313))/temp)
-    image_net_out_matrix = image_net_out_matrix/image_net_out_matrix.sum(aixs=1, keepdims=True)
+    image_net_out_matrix = image_net_out_matrix/image_net_out_matrix.sum(axis=1, keepdims=True)
     data_ab = numpy.dot(image_net_out_matrix, ref_Qcolor_bins)
     data_a_chan = (data_ab[:,0]).reshape(1,256,256)
     data_b_chan = (data_ab[:,1]).reshape(1,256,256)

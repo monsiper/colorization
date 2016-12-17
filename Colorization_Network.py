@@ -12,7 +12,7 @@ import sys
 
 from project_util import shared_dataset, load_data
 from project_nn import  ConvReLU, DeConvReLU,  \
-    BatchNorm, Colorization_Softmax, Colorization_Decoding,Colorization_PriorBoost, Conv
+    BatchNorm, Colorization_Softmax, Colorization_Decoding, Colorization_PriorBoost, dec_net_out_to_rgb
 
 
 class colorization(object):
@@ -371,6 +371,10 @@ class colorization(object):
             loaded_params=loaded_objects[29]
         )
     
+        self.class8_313_rh_upsampled = abstract_conv.bilinear_upsampling(self.class8_313_rh.output, 4)
+        
+        #self.output = dec_net_out_to_rgb(self.class8_313_rh_upsampled[1,:,:,:], self.bw_input[1,:,:,:], temp=0.4)
+        
         #########################
         #####   Decoding   ######
         #########################
@@ -514,7 +518,7 @@ class colorization(object):
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-            [self.class8_313_rh.output,self.bw_input,self.prior_boost.output,self.data_ab_enc,self.y],
+            [self.bw_input,self.class8_313_rh_upsampled,self.y],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
