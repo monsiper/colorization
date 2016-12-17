@@ -91,14 +91,26 @@ class colorization(object):
         """
         
         self.rng = numpy.random.RandomState(23455)
-        self.index=0
+        self.index = T.lscalar() 
     
         
     def build_model(self,
-                    batch_size=1,
-                    dim_in=256
-                    ):
+                   batch_size=1,
+                   dim_in=256,
+                   filename=None
+                   ):
         
+        if filename==None:
+            loaded_objects = []
+            for i in range(30):
+                loaded_objects.append(None)
+        else:
+            f = open(filename, 'rb')
+            loaded_objects = []
+            for i in range(30):
+                loaded_objects.append(cPickle.load(f))
+            f.close()
+            
         self.dim_in = dim_in
         self.batch_size = batch_size
     
@@ -134,7 +146,8 @@ class colorization(object):
             input=self.bw_input,
             image_shape=(batch_size, 1, dim_in, dim_in),
             filter_shape=(64, 1, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[0]
         )
         self.convrelu1_2 = ConvReLU(
             self.rng,
@@ -142,12 +155,14 @@ class colorization(object):
             image_shape=(batch_size, 64, dim_in, dim_in),
             filter_shape=(64, 64, 3, 3),
             border_mode=1,
-            conv_stride=(2, 2)
+            conv_stride=(2, 2),
+            loaded_params=loaded_objects[1]
         )
         self.bn_1 = BatchNorm(
                         self.rng,
                         self.convrelu1_2.output,
-                        image_shape=(batch_size, 64, dim_in / 2, dim_in / 2)
+                        image_shape=(batch_size, 64, dim_in / 2, dim_in / 2),
+                        loaded_params=loaded_objects[2]
         )
         #######################
         #####   conv_2   ######
@@ -158,7 +173,8 @@ class colorization(object):
             input=self.bn_1.output,
             image_shape=(batch_size, 64, dim_in / 2, dim_in / 2),
             filter_shape=(128, 64, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[3]
         )
         self.convrelu2_2 = ConvReLU(
             self.rng,
@@ -166,12 +182,14 @@ class colorization(object):
             image_shape=(batch_size, 128, dim_in / 2, dim_in / 2),
             filter_shape=(128, 128, 3, 3),
             border_mode=1,
-            conv_stride=(2, 2)
+            conv_stride=(2, 2),
+            loaded_params=loaded_objects[4]
         )
         self.bn_2 = BatchNorm(
             self.rng,
             self.convrelu2_2.output,
-            image_shape=(batch_size, 128, dim_in / 2 / 2, dim_in / 2 / 2)
+            image_shape=(batch_size, 128, dim_in / 2 / 2, dim_in / 2 / 2),
+            loaded_params=loaded_objects[5]
         )
         #######################
         #####   conv_3   ######
@@ -182,14 +200,16 @@ class colorization(object):
             input=self.bn_2.output,
             image_shape=(batch_size, 128, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 128, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[6]
         )
         self.convrelu3_2 = ConvReLU(
             self.rng,
             input=self.convrelu3_1.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[7]
         )
         self.convrelu3_3 = ConvReLU(
             self.rng,
@@ -197,12 +217,14 @@ class colorization(object):
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
             border_mode=1,
-            conv_stride=(2, 2)
+            conv_stride=(2, 2),
+            loaded_params=loaded_objects[8]
         )
         self.bn_3 = BatchNorm(
             self.rng,
             self.convrelu3_3.output,
-            image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+            image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
+            loaded_params=loaded_objects[9]
         )
     
         #######################
@@ -214,26 +236,30 @@ class colorization(object):
             input=self.bn_3.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 256, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[10]
         )
         self.convrelu4_2 = ConvReLU(
             self.rng,
             input=self.convrelu4_1.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[11]
         )
         self.convrelu4_3 = ConvReLU(
             self.rng,
             input=self.convrelu4_2.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[12]
         )
         self.bn_4 = BatchNorm(
             self.rng,
             self.convrelu4_3.output,
-            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
+            loaded_params=loaded_objects[13]
         )
     
         #######################
@@ -246,7 +272,8 @@ class colorization(object):
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
-            conv_dilation=(2, 2)
+            conv_dilation=(2, 2),
+            loaded_params=loaded_objects[14]
         )
         self.convrelu5_2 = ConvReLU(
             self.rng,
@@ -254,7 +281,8 @@ class colorization(object):
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
-            conv_dilation=(2, 2)
+            conv_dilation=(2, 2),
+            loaded_params=loaded_objects[15]
         )
         self.convrelu5_3 = ConvReLU(
             self.rng,
@@ -262,12 +290,14 @@ class colorization(object):
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
-            conv_dilation=(2, 2)
+            conv_dilation=(2, 2),
+            loaded_params=loaded_objects[16]
         )
         self.bn_5 = BatchNorm(
             self.rng,
             self.convrelu5_3.output,
-            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
+            loaded_params=loaded_objects[17]
         )
     
         #######################
@@ -280,7 +310,8 @@ class colorization(object):
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
-            conv_dilation=(2, 2)
+            conv_dilation=(2, 2),
+            loaded_params=loaded_objects[18]
         )
         self.convrelu6_2 = ConvReLU(
             self.rng,
@@ -288,7 +319,8 @@ class colorization(object):
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
-            conv_dilation=(2, 2)
+            conv_dilation=(2, 2),
+            loaded_params=loaded_objects[19]
         )
         self.convrelu6_3 = ConvReLU(
             self.rng,
@@ -296,12 +328,14 @@ class colorization(object):
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
             border_mode=2,
-            conv_dilation=(2, 2)
+            conv_dilation=(2, 2),
+            loaded_params=loaded_objects[20]
         )
         self.bn_6 = BatchNorm(
             self.rng,
             self.convrelu6_3.output,
-            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+            image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
+            loaded_params=loaded_objects[21]
         )
     
         #######################
@@ -313,26 +347,30 @@ class colorization(object):
             input=self.bn_6.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[22]
         )
         self.convrelu7_2 = ConvReLU(
             self.rng,
             input=self.convrelu7_1.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(512, 512, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[23]
         )
         self.convrelu7_3 = ConvReLU(
             self.rng,
             input=self.convrelu7_2.output,
             image_shape=(batch_size, 512, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
             filter_shape=(256, 512, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[24]
         )
         self.bn_7 = BatchNorm(
             self.rng,
             self.convrelu7_3.output,
-            image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2)
+            image_shape=(batch_size, 256, dim_in / 2 / 2 / 2, dim_in / 2 / 2 / 2),
+            loaded_params=loaded_objects[25]
         )
     
         #######################
@@ -345,7 +383,8 @@ class colorization(object):
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 4, 4),
             border_mode=1,
-            conv_stride=(2, 2)
+            conv_stride=(2, 2),
+            loaded_params=loaded_objects[26]
         )
     
         self.convrelu8_2 = ConvReLU(
@@ -353,14 +392,16 @@ class colorization(object):
             input=self.convrelu8_1.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[27]
         )
         self.convrelu8_3 = ConvReLU(
             self.rng,
             input=self.convrelu8_2.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(256, 256, 3, 3),
-            border_mode=1
+            border_mode=1,
+            loaded_params=loaded_objects[28]
         )
     
                 
@@ -373,7 +414,8 @@ class colorization(object):
             input=self.convrelu8_3.output,
             image_shape=(batch_size, 256, dim_in / 2 / 2, dim_in / 2 / 2),
             filter_shape=(313, 256, 1, 1),
-            border_mode=0
+            border_mode=0,
+            loaded_params=loaded_objects[29]
         )
     
         #########################
@@ -417,8 +459,6 @@ class colorization(object):
     
         self.n_train_batches //= self.batch_size
     
-        # allocate symbolic variables for the data
-        self.index = T.lscalar() 
 
         optimizer_engine = optimizer(type=type)
         """
@@ -549,189 +589,35 @@ class colorization(object):
     def save_params(self,filename='params.save'):        
         f = open(filename, 'wb') 
         for obj in [self.convrelu1_1.params,
-                    self.convrelu1_1.W,
-                    self.convrelu1_1.b,
                     self.convrelu1_2.params,
-                    self.convrelu1_2.W,
-                    self.convrelu1_2.b,
                     self.bn_1.params,
-                    self.bn_1.gamma, 
-                    self.bn_1.beta,
                     self.convrelu2_1.params,
-                    self.convrelu2_1.W,
-                    self.convrelu2_1.b,
                     self.convrelu2_2.params,
-                    self.convrelu2_2.W,
-                    self.convrelu2_2.b,
                     self.bn_2.params,
-                    self.bn_2.gamma, 
-                    self.bn_2.beta,
                     self.convrelu3_1.params,
-                    self.convrelu3_1.W,
-                    self.convrelu3_1.b,
                     self.convrelu3_2.params,
-                    self.convrelu3_2.W,
-                    self.convrelu3_2.b,
                     self.convrelu3_3.params,
-                    self.convrelu3_3.W,
-                    self.convrelu3_3.b,
                     self.bn_3.params,
-                    self.bn_3.gamma, 
-                    self.bn_3.beta,
                     self.convrelu4_1.params,
-                    self.convrelu4_1.W,
-                    self.convrelu4_1.b,
                     self.convrelu4_2.params,
-                    self.convrelu4_2.W,
-                    self.convrelu4_2.b,
                     self.convrelu4_3.params,
-                    self.convrelu4_3.W,
-                    self.convrelu4_3.b,
                     self.bn_4.params,
-                    self.bn_4.gamma, 
-                    self.bn_4.beta,
                     self.convrelu5_1.params,
-                    self.convrelu5_1.W,
-                    self.convrelu5_1.b,
                     self.convrelu5_2.params,
-                    self.convrelu5_2.W,
-                    self.convrelu5_2.b,
                     self.convrelu5_3.params,
-                    self.convrelu5_3.W,
-                    self.convrelu5_3.b,
                     self.bn_5.params,
-                    self.bn_5.gamma, 
-                    self.bn_5.beta,
                     self.convrelu6_1.params,
-                    self.convrelu6_1.W,
-                    self.convrelu6_1.b,
                     self.convrelu6_2.params,
-                    self.convrelu6_2.W,
-                    self.convrelu6_2.b,
                     self.convrelu6_3.params,
-                    self.convrelu6_3.W,
-                    self.convrelu6_3.b,
                     self.bn_6.params,
-                    self.bn_6.gamma, 
-                    self.bn_6.beta,
                     self.convrelu7_1.params,
-                    self.convrelu7_1.W,
-                    self.convrelu7_1.b,
                     self.convrelu7_2.params,
-                    self.convrelu7_2.W,
-                    self.convrelu7_2.b,
                     self.convrelu7_3.params,
-                    self.convrelu7_3.W,
-                    self.convrelu7_3.b,
                     self.bn_7.params,
-                    self.bn_7.gamma, 
-                    self.bn_7.beta,
                     self.convrelu8_1.params,
-                    self.convrelu8_1.W,
-                    self.convrelu8_1.b,
                     self.convrelu8_2.params,
-                    self.convrelu8_2.W,
-                    self.convrelu8_2.b,
                     self.convrelu8_3.params,
-                    self.convrelu8_3.W,
-                    self.convrelu8_3.b,
-                    self.class8_313_rh.params,
-                    self.class8_313_rh.W,
-                    self.class8_313_rh.b]:
+                    self.class8_313_rh.params
+                   ]:
              cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
         f.close()
-
-    def load_params(self,filename='params.save'):
-        f = open(filename, 'rb')
-        self.convrelu1_1.params = cPickle.load(f)
-        self.convrelu1_1.W = cPickle.load(f)
-        self.convrelu1_1.b = cPickle.load(f)
-        self.convrelu1_2.params = cPickle.load(f)
-        self.convrelu1_2.W = cPickle.load(f)
-        self.convrelu1_2.b = cPickle.load(f)
-        self.bn_1.params = cPickle.load(f)
-        self.bn_1.gamma = cPickle.load(f) 
-        self.bn_1.beta = cPickle.load(f)
-        self.convrelu2_1.params = cPickle.load(f)
-        self.convrelu2_1.W = cPickle.load(f)
-        self.convrelu2_1.b = cPickle.load(f)
-        self.convrelu2_2.params = cPickle.load(f)
-        self.convrelu2_2.W = cPickle.load(f)
-        self.convrelu2_2.b = cPickle.load(f)
-        self.bn_2.params = cPickle.load(f)
-        self.bn_2.gamma = cPickle.load(f) 
-        self.bn_2.beta = cPickle.load(f)
-        self.convrelu3_1.params = cPickle.load(f)
-        self.convrelu3_1.W = cPickle.load(f)
-        self.convrelu3_1.b = cPickle.load(f)
-        self.convrelu3_2.params = cPickle.load(f)
-        self.convrelu3_2.W = cPickle.load(f)
-        self.convrelu3_2.b = cPickle.load(f)
-        self.convrelu3_3.params = cPickle.load(f)
-        self.convrelu3_3.W = cPickle.load(f)
-        self.convrelu3_3.b = cPickle.load(f)
-        self.bn_3.params = cPickle.load(f)
-        self.bn_3.gamma = cPickle.load(f) 
-        self.bn_3.beta = cPickle.load(f)
-        self.convrelu4_1.params = cPickle.load(f)
-        self.convrelu4_1.W = cPickle.load(f)
-        self.convrelu4_1.b = cPickle.load(f)
-        self.convrelu4_2.params = cPickle.load(f)
-        self.convrelu4_2.W = cPickle.load(f)
-        self.convrelu4_2.b = cPickle.load(f)
-        self.convrelu4_3.params = cPickle.load(f)
-        self.convrelu4_3.W = cPickle.load(f)
-        self.convrelu4_3.b = cPickle.load(f)
-        self.bn_4.params = cPickle.load(f)
-        self.bn_4.gamma = cPickle.load(f) 
-        self.bn_4.beta = cPickle.load(f)
-        self.convrelu5_1.params = cPickle.load(f)
-        self.convrelu5_1.W = cPickle.load(f)
-        self.convrelu5_1.b = cPickle.load(f)
-        self.convrelu5_2.params = cPickle.load(f)
-        self.convrelu5_2.W = cPickle.load(f)
-        self.convrelu5_2.b = cPickle.load(f)
-        self.convrelu5_3.params = cPickle.load(f)
-        self.convrelu5_3.W = cPickle.load(f)
-        self.convrelu5_3.b = cPickle.load(f)
-        self.bn_5.params = cPickle.load(f)
-        self.bn_5.gamma = cPickle.load(f) 
-        self.bn_5.beta = cPickle.load(f)
-        self.convrelu6_1.params = cPickle.load(f)
-        self.convrelu6_1.W = cPickle.load(f)
-        self.convrelu6_1.b = cPickle.load(f)
-        self.convrelu6_2.params = cPickle.load(f)
-        self.convrelu6_2.W = cPickle.load(f)
-        self.convrelu6_2.b = cPickle.load(f)
-        self.convrelu6_3.params = cPickle.load(f)
-        self.convrelu6_3.W = cPickle.load(f)
-        self.convrelu6_3.b = cPickle.load(f)
-        self.bn_6.params = cPickle.load(f)
-        self.bn_6.gamma = cPickle.load(f) 
-        self.bn_6.beta = cPickle.load(f)
-        self.convrelu7_1.params = cPickle.load(f)
-        self.convrelu7_1.W = cPickle.load(f)
-        self.convrelu7_1.b = cPickle.load(f)
-        self.convrelu7_2.params = cPickle.load(f)
-        self.convrelu7_2.W = cPickle.load(f)
-        self.convrelu7_2.b = cPickle.load(f)
-        self.convrelu7_3.params = cPickle.load(f)
-        self.convrelu7_3.W = cPickle.load(f)
-        self.convrelu7_3.b = cPickle.load(f)
-        self.bn_7.params = cPickle.load(f)
-        self.bn_7.gamma = cPickle.load(f) 
-        self.bn_7.beta = cPickle.load(f)
-        self.convrelu8_1.params = cPickle.load(f)
-        self.convrelu8_1.W = cPickle.load(f)
-        self.convrelu8_1.b = cPickle.load(f)
-        self.convrelu8_2.params = cPickle.load(f)
-        self.convrelu8_2.W = cPickle.load(f)
-        self.convrelu8_2.b = cPickle.load(f)
-        self.convrelu8_3.params = cPickle.load(f)
-        self.convrelu8_3.W = cPickle.load(f)
-        self.convrelu8_3.b = cPickle.load(f)
-        self.class8_313_rh.params = cPickle.load(f)
-        self.class8_313_rh.W = cPickle.load(f)
-        self.class8_313_rh.b = cPickle.load(f)
-        f.close()
-    
