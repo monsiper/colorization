@@ -68,14 +68,7 @@ class LogisticRegression(object):
             borrow=True
         )
 
-        # symbolic expression for computing the matrix of class-membership
-        # probabilities
-        # Where:
-        # W is a matrix where column-k represent the separation hyperplane for
-        # class-k
-        # x is a matrix where row-j  represents input training sample-j
-        # b is a vector where element-k represent the free parameter of
-        # hyperplane-k
+
         self.p_y_given_x = T.nnet.softmax(T.dot(input, self.W) + self.b)
 
         # symbolic description of how to compute prediction as class whose
@@ -91,13 +84,6 @@ class LogisticRegression(object):
     def negative_log_likelihood(self, y):
         """Return the mean of the negative log-likelihood of the prediction
         of this model under a given target distribution.
-
-        .. math::
-
-            \frac{1}{|\mathcal{D}|} \mathcal{L} (\theta=\{W,b\}, \mathcal{D}) =
-            \frac{1}{|\mathcal{D}|} \sum_{i=0}^{|\mathcal{D}|}
-                \log(P(Y=y^{(i)}|x^{(i)}, W,b)) \\
-            \ell (\theta=\{W,b\}, \mathcal{D})
 
         :type y: theano.tensor.TensorType
         :param y: corresponds to a vector that gives for each example the
@@ -171,18 +157,6 @@ class HiddenLayer(object):
         """
         self.input = input
 
-        # `W` is initialized with `W_values` which is uniformely sampled
-        # from sqrt(-6./(n_in+n_hidden)) and sqrt(6./(n_in+n_hidden))
-        # for tanh activation function
-        # the output of uniform if converted using asarray to dtype
-        # theano.config.floatX so that the code is runable on GPU
-        # Note : optimal initialization of weights is dependent on the
-        #        activation function used (among other things).
-        #        For example, results presented in [Xavier10] suggest that you
-        #        should use 4 times larger initial weights for sigmoid
-        #        compared to tanh
-        #        We have no info for other function, so we use the same as
-        #        tanh.
         if W is None:
             W_values = numpy.asarray(
                 rng.uniform(
