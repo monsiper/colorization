@@ -7,6 +7,7 @@ from theano.tensor.nnet import conv2d, bn, abstract_conv
 from project_util import download_images, prepare_image_sets
 import scipy
 import os
+from six.moves import cPickle
 
 import sys
 
@@ -90,6 +91,7 @@ class colorization(object):
         """
         
         self.rng = numpy.random.RandomState(23455)
+        self.index=0
     
         
     def build_model(self,
@@ -386,8 +388,7 @@ class colorization(object):
         self.net_out_for_cost_func = T.log((self.network_output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
         self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
         self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc_for_cost_func).sum(axis=2)).sum(axis=1)))
-        self.cost = self.cost/self.batch_size
-    
+        
     def train_network(
         self,
         dir_name='./data/',
@@ -544,4 +545,193 @@ class colorization(object):
         )
         return self.output_model(ind)
     
+    
+    def save_params(self,filename='params.save'):        
+        f = open(filename, 'wb') 
+        for obj in [self.convrelu1_1.params,
+                    self.convrelu1_1.W,
+                    self.convrelu1_1.b,
+                    self.convrelu1_2.params,
+                    self.convrelu1_2.W,
+                    self.convrelu1_2.b,
+                    self.bn_1.params,
+                    self.bn_1.gamma, 
+                    self.bn_1.beta,
+                    self.convrelu2_1.params,
+                    self.convrelu2_1.W,
+                    self.convrelu2_1.b,
+                    self.convrelu2_2.params,
+                    self.convrelu2_2.W,
+                    self.convrelu2_2.b,
+                    self.bn_2.params,
+                    self.bn_2.gamma, 
+                    self.bn_2.beta,
+                    self.convrelu3_1.params,
+                    self.convrelu3_1.W,
+                    self.convrelu3_1.b,
+                    self.convrelu3_2.params,
+                    self.convrelu3_2.W,
+                    self.convrelu3_2.b,
+                    self.convrelu3_3.params,
+                    self.convrelu3_3.W,
+                    self.convrelu3_3.b,
+                    self.bn_3.params,
+                    self.bn_3.gamma, 
+                    self.bn_3.beta,
+                    self.convrelu4_1.params,
+                    self.convrelu4_1.W,
+                    self.convrelu4_1.b,
+                    self.convrelu4_2.params,
+                    self.convrelu4_2.W,
+                    self.convrelu4_2.b,
+                    self.convrelu4_3.params,
+                    self.convrelu4_3.W,
+                    self.convrelu4_3.b,
+                    self.bn_4.params,
+                    self.bn_4.gamma, 
+                    self.bn_4.beta,
+                    self.convrelu5_1.params,
+                    self.convrelu5_1.W,
+                    self.convrelu5_1.b,
+                    self.convrelu5_2.params,
+                    self.convrelu5_2.W,
+                    self.convrelu5_2.b,
+                    self.convrelu5_3.params,
+                    self.convrelu5_3.W,
+                    self.convrelu5_3.b,
+                    self.bn_5.params,
+                    self.bn_5.gamma, 
+                    self.bn_5.beta,
+                    self.convrelu6_1.params,
+                    self.convrelu6_1.W,
+                    self.convrelu6_1.b,
+                    self.convrelu6_2.params,
+                    self.convrelu6_2.W,
+                    self.convrelu6_2.b,
+                    self.convrelu6_3.params,
+                    self.convrelu6_3.W,
+                    self.convrelu6_3.b,
+                    self.bn_6.params,
+                    self.bn_6.gamma, 
+                    self.bn_6.beta,
+                    self.convrelu7_1.params,
+                    self.convrelu7_1.W,
+                    self.convrelu7_1.b,
+                    self.convrelu7_2.params,
+                    self.convrelu7_2.W,
+                    self.convrelu7_2.b,
+                    self.convrelu7_3.params,
+                    self.convrelu7_3.W,
+                    self.convrelu7_3.b,
+                    self.bn_7.params,
+                    self.bn_7.gamma, 
+                    self.bn_7.beta,
+                    self.convrelu8_1.params,
+                    self.convrelu8_1.W,
+                    self.convrelu8_1.b,
+                    self.convrelu8_2.params,
+                    self.convrelu8_2.W,
+                    self.convrelu8_2.b,
+                    self.convrelu8_3.params,
+                    self.convrelu8_3.W,
+                    self.convrelu8_3.b,
+                    self.class8_313_rh.params,
+                    self.class8_313_rh.W,
+                    self.class8_313_rh.b]:
+             cPickle.dump(obj, f, protocol=cPickle.HIGHEST_PROTOCOL)
+        f.close()
+
+    def load_params(self,filename='params.save'):
+        f = open(filename, 'rb')
+        self.convrelu1_1.params = cPickle.load(f)
+        self.convrelu1_1.W = cPickle.load(f)
+        self.convrelu1_1.b = cPickle.load(f)
+        self.convrelu1_2.params = cPickle.load(f)
+        self.convrelu1_2.W = cPickle.load(f)
+        self.convrelu1_2.b = cPickle.load(f)
+        self.bn_1.params = cPickle.load(f)
+        self.bn_1.gamma = cPickle.load(f) 
+        self.bn_1.beta = cPickle.load(f)
+        self.convrelu2_1.params = cPickle.load(f)
+        self.convrelu2_1.W = cPickle.load(f)
+        self.convrelu2_1.b = cPickle.load(f)
+        self.convrelu2_2.params = cPickle.load(f)
+        self.convrelu2_2.W = cPickle.load(f)
+        self.convrelu2_2.b = cPickle.load(f)
+        self.bn_2.params = cPickle.load(f)
+        self.bn_2.gamma = cPickle.load(f) 
+        self.bn_2.beta = cPickle.load(f)
+        self.convrelu3_1.params = cPickle.load(f)
+        self.convrelu3_1.W = cPickle.load(f)
+        self.convrelu3_1.b = cPickle.load(f)
+        self.convrelu3_2.params = cPickle.load(f)
+        self.convrelu3_2.W = cPickle.load(f)
+        self.convrelu3_2.b = cPickle.load(f)
+        self.convrelu3_3.params = cPickle.load(f)
+        self.convrelu3_3.W = cPickle.load(f)
+        self.convrelu3_3.b = cPickle.load(f)
+        self.bn_3.params = cPickle.load(f)
+        self.bn_3.gamma = cPickle.load(f) 
+        self.bn_3.beta = cPickle.load(f)
+        self.convrelu4_1.params = cPickle.load(f)
+        self.convrelu4_1.W = cPickle.load(f)
+        self.convrelu4_1.b = cPickle.load(f)
+        self.convrelu4_2.params = cPickle.load(f)
+        self.convrelu4_2.W = cPickle.load(f)
+        self.convrelu4_2.b = cPickle.load(f)
+        self.convrelu4_3.params = cPickle.load(f)
+        self.convrelu4_3.W = cPickle.load(f)
+        self.convrelu4_3.b = cPickle.load(f)
+        self.bn_4.params = cPickle.load(f)
+        self.bn_4.gamma = cPickle.load(f) 
+        self.bn_4.beta = cPickle.load(f)
+        self.convrelu5_1.params = cPickle.load(f)
+        self.convrelu5_1.W = cPickle.load(f)
+        self.convrelu5_1.b = cPickle.load(f)
+        self.convrelu5_2.params = cPickle.load(f)
+        self.convrelu5_2.W = cPickle.load(f)
+        self.convrelu5_2.b = cPickle.load(f)
+        self.convrelu5_3.params = cPickle.load(f)
+        self.convrelu5_3.W = cPickle.load(f)
+        self.convrelu5_3.b = cPickle.load(f)
+        self.bn_5.params = cPickle.load(f)
+        self.bn_5.gamma = cPickle.load(f) 
+        self.bn_5.beta = cPickle.load(f)
+        self.convrelu6_1.params = cPickle.load(f)
+        self.convrelu6_1.W = cPickle.load(f)
+        self.convrelu6_1.b = cPickle.load(f)
+        self.convrelu6_2.params = cPickle.load(f)
+        self.convrelu6_2.W = cPickle.load(f)
+        self.convrelu6_2.b = cPickle.load(f)
+        self.convrelu6_3.params = cPickle.load(f)
+        self.convrelu6_3.W = cPickle.load(f)
+        self.convrelu6_3.b = cPickle.load(f)
+        self.bn_6.params = cPickle.load(f)
+        self.bn_6.gamma = cPickle.load(f) 
+        self.bn_6.beta = cPickle.load(f)
+        self.convrelu7_1.params = cPickle.load(f)
+        self.convrelu7_1.W = cPickle.load(f)
+        self.convrelu7_1.b = cPickle.load(f)
+        self.convrelu7_2.params = cPickle.load(f)
+        self.convrelu7_2.W = cPickle.load(f)
+        self.convrelu7_2.b = cPickle.load(f)
+        self.convrelu7_3.params = cPickle.load(f)
+        self.convrelu7_3.W = cPickle.load(f)
+        self.convrelu7_3.b = cPickle.load(f)
+        self.bn_7.params = cPickle.load(f)
+        self.bn_7.gamma = cPickle.load(f) 
+        self.bn_7.beta = cPickle.load(f)
+        self.convrelu8_1.params = cPickle.load(f)
+        self.convrelu8_1.W = cPickle.load(f)
+        self.convrelu8_1.b = cPickle.load(f)
+        self.convrelu8_2.params = cPickle.load(f)
+        self.convrelu8_2.W = cPickle.load(f)
+        self.convrelu8_2.b = cPickle.load(f)
+        self.convrelu8_3.params = cPickle.load(f)
+        self.convrelu8_3.W = cPickle.load(f)
+        self.convrelu8_3.b = cPickle.load(f)
+        self.class8_313_rh.params = cPickle.load(f)
+        self.class8_313_rh.W = cPickle.load(f)
+        self.class8_313_rh.b = cPickle.load(f)
+        f.close()
     
