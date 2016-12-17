@@ -682,7 +682,6 @@ class BatchNorm(object):
         self.input = input
         
         
-        
 class Colorization_Softmax(object):
     def __init__(self, 
                  rng, 
@@ -696,8 +695,6 @@ class Colorization_Softmax(object):
                  loaded_params=None
                 ):
         """
-        Allocate a LeNetConvPoolLayer with shared variable internal parameters.
-
         :type rng: numpy.random.RandomState
         :param rng: a random number generator used to initialize weights
 
@@ -711,9 +708,6 @@ class Colorization_Softmax(object):
         :type image_shape: tuple or list of length 4
         :param image_shape: (batch size, num input feature maps,
                              image height, image width)
-
-        :type poolsize: tuple or list of length 2
-        :param poolsize: the downsampling (pooling) factor (#rows, #cols)
         """
 
         assert image_shape[1] == filter_shape[1]
@@ -801,7 +795,6 @@ class Colorization_Decoding(object):
         """
 
         assert image_shape[1] == filter_shape[1]
-        self.input = input
 
         if conv_stride==None:
             conv_stride=(1,1)

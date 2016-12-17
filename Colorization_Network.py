@@ -12,7 +12,7 @@ import sys
 
 from project_util import shared_dataset, load_data
 from project_nn import  ConvReLU, DeConvReLU,  \
-    BatchNorm, Colorization_Softmax, Colorization_Decoding, ConvSubSample,Colorization_PriorBoost, Conv
+    BatchNorm, Colorization_Softmax, Colorization_Decoding,Colorization_PriorBoost, Conv
 
 class optimizer(object):
     def __init__(self,type='ADAM'):
@@ -455,24 +455,9 @@ class colorization(object):
     
         # compute number of minibatches for training, validation and testing
         self.n_train_batches = self.train_set_x.get_value(borrow=True).shape[0]
-    
         self.n_train_batches //= self.batch_size
     
-
-        optimizer_engine = optimizer(type=type)
-        """
-        def RMSprop(cost, params, lr=learning_rate, rho=0.9, epsilon=1e-6):
-            grads = T.grad(cost=cost, wrt=params)
-            updates = []
-            for p, g in zip(params, grads):
-                acc = theano.shared(p.get_value() * 0.)
-                acc_new = rho * acc + (1 - rho) * g ** 2
-                gradient_scaling = T.sqrt(acc_new + epsilon)
-                g = g / gradient_scaling
-                updates.append((acc, acc_new))
-                updates.append((p, p - lr * g))
-            return updates
-        """
+        # optimizer (ADAM)
         def adam(cost, params, learning_rate=0.0002, beta1=0.1, beta2=0.001, epsilon=1e-8, gamma=1 - 1e-7):
             updates = []
             grads = T.grad(cost, params)
@@ -497,7 +482,7 @@ class colorization(object):
             updates.append((t, t + 1.))
             return updates
         self.updates = adam(self.cost, self.params)
-        #self.updates = optimizer_engine.update(self.cost, self.params)
+
     
         self.train_model = theano.function(
             [self.index],
@@ -515,14 +500,7 @@ class colorization(object):
     
         print('... training')
         # early-stopping parameters
-        patience = 100000  # look as this many examples regardless
-        patience_increase = 2  # wait this much longer when a new best is
-        # found
-        improvement_threshold = 0.995  # a relative improvement of this much is
-        # considered significant
-        validation_frequency = min(self.n_train_batches, patience // 2)
-    
-        best_validation_loss = numpy.inf
+
         best_iter = 0
         test_score = 0.
         start_time = timeit.default_timer()
@@ -583,8 +561,7 @@ class colorization(object):
             }
         )
         return self.output_model(ind)
-    
-    
+
     def save_params(self,filename='params.save'):        
         f = open(filename, 'wb') 
         for obj in [self.convrelu1_1.params,
