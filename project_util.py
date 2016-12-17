@@ -174,8 +174,8 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1):
             train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
     else:
         print('Loading Batch %s'%(batch_ind))
-        train_set_l = np.load(path + '/test_batch_l_%s.npy'%(batch_num))
-        train_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(batch_num))
+        train_set_l = np.load(path + '/test_batch_l_%s.npy'%(batch_ind))
+        train_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(batch_ind))
         for i in range(batch_ind,batch_ind+batch_num-1):
             print('Loading Batch %s'%(i+1))
             new_set_l = np.load(path + '/test_batch_l_%s.npy'%(i+1))

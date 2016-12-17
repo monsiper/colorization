@@ -479,7 +479,8 @@ class ConvReLU(object):
                  border_mode='full',
                  conv_stride=None,
                  alpha=0,
-                 conv_dilation=None):
+                 conv_dilation=None,
+                 loaded_params=None):
         """
         Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
@@ -510,19 +511,28 @@ class ConvReLU(object):
             conv_dilation=(1,1)
         fan_in = numpy.prod(filter_shape[1:])
         fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
-
+        if loaded_params==None:
+            W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+            self.W = theano.shared(
+                numpy.asarray(
+                    rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow=True
+            )
+            # the bias is a 1D tensor -- one bias per output feature map
+            b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+            self.b = theano.shared(value=b_values, borrow=True)
+        else:
+            self.W = theano.shared(
+                loaded_params[0].get_value(),
+                borrow=True
+            )
+            self.b = theano.shared(
+                loaded_params[1].get_value(),
+                borrow=True
+            )
+            
         # convolve input feature maps with filters
         conv_out = conv2d(
             input=input,
@@ -551,7 +561,8 @@ class DeConvReLU(object):
                  border_mode='full',
                  conv_stride=None,
                  alpha=0,
-                 conv_dilation=None):
+                 conv_dilation=None,
+                 loaded_params=None):
         """
         Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
@@ -582,18 +593,28 @@ class DeConvReLU(object):
             conv_dilation=(1,1)
         fan_in = numpy.prod(filter_shape[1:])
         fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
+        if loaded_params==None:
+            W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+            self.W = theano.shared(
+                numpy.asarray(
+                    rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow=True
+            )
+            # the bias is a 1D tensor -- one bias per output feature map
+            b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+            self.b = theano.shared(value=b_values, borrow=True)
+        else:
+            self.W = theano.shared(
+                loaded_params[0].get_value(),
+                borrow=True
+            )
+            self.b = theano.shared(
+                loaded_params[1].get_value(),
+                borrow=True
+            )
+            
         deconv_out = conv2d_grad_wrt_inputs(
             output_grad=input,
             filters=self.W,
@@ -625,7 +646,8 @@ class BatchNorm(object):
     def __init__(self,
                  rng, 
                  input,
-                 image_shape):
+                 image_shape,
+                 loaded_params=None):
         """
         Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
@@ -648,21 +670,30 @@ class BatchNorm(object):
         """
 
         self.input = input
-
-        self.gamma = theano.shared(
-             numpy.asarray(
-                rng.uniform(low=-0.1, high=0.1, size=image_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow = True
-        )
-        self.beta = theano.shared(
-             numpy.asarray(
-                rng.uniform(low=-0.1, high=0.1, size=image_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow = True
-        )
+        if loaded_params==None:
+            self.gamma = theano.shared(
+                 numpy.asarray(
+                    rng.uniform(low=-0.1, high=0.1, size=image_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow = True
+            )
+            self.beta = theano.shared(
+                 numpy.asarray(
+                    rng.uniform(low=-0.1, high=0.1, size=image_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow = True
+            )
+        else:
+            self.gamma = theano.shared(
+                 loaded_params[0].get_value(),
+                borrow = True
+            )
+            self.beta = theano.shared(
+                 loaded_params[1].get_value(),
+                borrow = True
+            )
         #self.beta = theano.shared(value = numpy.zeros(image_shape, dtype=theano.config.floatX), name='beta')
 
 
@@ -687,7 +718,9 @@ class Colorization_Softmax(object):
                  border_mode='full',
                  conv_stride=None,
                  alpha=0,
-                 conv_dilation=None):
+                 conv_dilation=None,
+                 loaded_params=None
+                ):
         """
         Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
@@ -718,18 +751,27 @@ class Colorization_Softmax(object):
             conv_dilation=(1,1)
         fan_in = numpy.prod(filter_shape[1:])
         fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-        #self.scale = theano.shared(numpy.asscalar(numpy.array([2.606])),borrow=True)
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
+        if loaded_params==None:
+            W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+            self.W = theano.shared(
+                numpy.asarray(
+                    rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow=True
+            )
+            # the bias is a 1D tensor -- one bias per output feature map
+            b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+            self.b = theano.shared(value=b_values, borrow=True)
+        else:
+            self.W = theano.shared(
+                loaded_params[0].get_value(),
+                borrow=True
+            )
+            self.b = theano.shared(
+                loaded_params[1].get_value(),
+                borrow=True
+            )
 
         # convolve input feature maps with filters
         conv_out = conv2d(
@@ -760,7 +802,9 @@ class Colorization_Decoding(object):
                  border_mode='full',
                  conv_stride=None,
                  alpha=0,
-                 conv_dilation=None):
+                 conv_dilation=None,
+                 loaded_params=None
+                ):
         """
         Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
@@ -791,17 +835,28 @@ class Colorization_Decoding(object):
             conv_dilation=(1,1)
         fan_in = numpy.prod(filter_shape[1:])
         fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
+        if loaded_params==None:
+            W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+            self.W = theano.shared(
+                numpy.asarray(
+                    rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow=True
+            )
+            # the bias is a 1D tensor -- one bias per output feature map
+            b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+            self.b = theano.shared(value=b_values, borrow=True)
+        else:
+            self.W = theano.shared(
+                loaded_params[0].get_value(),
+                borrow=True
+            )
+            self.b = theano.shared(
+                loaded_params[1].get_value(),
+                borrow=True
+            )
+        self.params = [self.W, self.b]
 
         # convolve input feature maps with filters
         conv_out = conv2d(
@@ -816,7 +871,6 @@ class Colorization_Decoding(object):
         self.output = conv_out + self.b.dimshuffle('x', 0, 'x', 'x')
 
         # store parameters of this layer
-        self.params = [self.W, self.b]
 
         # keep track of model input
         self.input = input
