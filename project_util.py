@@ -57,7 +57,7 @@ def download_images(dir_name, num_of_pages):
             with open(complete_path, "wb") as code:
                 code.write(data)
 
-def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training'):
+def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training',threshold=5):
     """Converts .jpeg images into numpy matrices(each row corresponds to one image) and saves
      them in batches consisting of batch_size images"""
 
@@ -79,32 +79,40 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
             if not image==".DS_Store" and not os.path.splitext(image)=='.npy':
                 with open(path + '/' + image, 'r+b') as f:
                     with Image.open(f) as img_f:
-                        resized_im = resizeimage.resize_cover(img_f, [256, 256])
-                        # resized_im.save(path + '/' + 'image-%s.jpeg' % index, img_f.format)
-                        img_rgb = (np.array(resized_im))
-                        if len(img_rgb.shape)==3:
-                            img_ind += 1
-                            img_lab = color.rgb2lab(img_rgb[:,:,0:3])
-                            l = img_lab[:, :, 0].flatten() # Slicing to get L data
-                            a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
-                            b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
+                        try:
+                            resized_im = resizeimage.resize_cover(img_f, [256, 256])
+                            # resized_im.save(path + '/' + 'image-%s.jpeg' % index, img_f.format)
+                            img_rgb = (np.array(resized_im))
+                            if len(img_rgb.shape)==3:
+                                img_lab = color.rgb2lab(img_rgb[:,:,0:3])
+                                l = img_lab[:, :, 0].flatten() # Slicing to get L data
+                                a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
+                                b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
+                                #print(np.sum(a>threshold)+np.sum(b>threshold))
+                                if (np.sum(a>threshold)+np.sum(b>threshold))>1:
+                                    if batch_reset:
+                                        l_out = np.array(l, np.float32)
+                                        ab_enc_out = encode_ab_to_Q(a,b)
+                                        batch_reset = False
+                                    else:
+                                        new_l = l.astype(dtype=np.float32)
+                                        new_ab_enc = encode_ab_to_Q(a,b)
+                                        l_out = np.vstack((l_out,new_l))
+                                        ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
+                                    img_ind += 1
 
-                            if batch_reset:
-                                l_out = np.array(l, np.float32)
-                                ab_enc_out = encode_ab_to_Q(a,b)
-                                batch_reset = False
-                            else:
-                                new_l = l.astype(dtype=np.float32)
-                                new_ab_enc = encode_ab_to_Q(a,b)
-                                l_out = np.vstack((l_out,new_l))
-                                ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
-
-                            if img_ind%batch_size==0 and img_ind!=0:
-                                batch_ind += 1
-                                print('Creating matrices for batch number %s' %batch_ind)
-                                np.save(new_path + '/test_batch_l_%s.npy' %batch_ind, l_out)
-                                np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
-                                batch_reset = True
+                                    if img_ind%batch_size==0 and img_ind!=0:
+                                        batch_ind += 1
+                                        print('Creating matrices for batch number %s' %batch_ind)
+                                        np.save(new_path + '/test_batch_l_%s.npy' %batch_ind, l_out)
+                                        np.save(new_path + '/test_batch_ab_%s.npy' % batch_ind, ab_enc_out)
+                                        batch_reset = True
+                                else:
+                                    print('grayscale found: %s' %image)
+                        except:
+                            print('error image: %s' %image)
+            if batch_ind==50:
+                break
 
         if not batch_reset:
             batch_ind += 1

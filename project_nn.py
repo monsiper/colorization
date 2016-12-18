@@ -844,7 +844,8 @@ class Colorization_Decoding(object):
         # keep track of model input
         self.input = input
         
-
+        
+        
 class PriorFactor():
     def __init__(self, 
                  rng, 
@@ -853,7 +854,8 @@ class PriorFactor():
                  batch_size,
                  gamma=0,
                  verbose=False,
-                 priorFile='prior_probs.npy'):
+                 priorFile='prior_probs.npy'
+                ):
         
         self.input = input
         # settings

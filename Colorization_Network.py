@@ -42,7 +42,9 @@ class colorization(object):
         :type nkerns: list of ints
         :param nkerns: number of kernels on each layer
         """
-        
+        if not os.path.isdir(dir_name):
+            download_images(dir_name, 50)
+        prepare_image_sets(dir_name, batch_size=200)
         self.rng = numpy.random.RandomState(23455)
         self.index = T.lscalar() 
     
@@ -422,7 +424,7 @@ class colorization(object):
         self.n_train_batches //= self.batch_size
     
         # optimizer (ADAM)
-        def adam(cost, params, learning_rate=0.0002, beta1=0.1, beta2=0.001, epsilon=1e-8, gamma=1 - 1e-7):
+        def adam(cost, params, learning_rate=learning_rate, beta1=0.1, beta2=0.001, epsilon=1e-8, gamma=1 - 1e-7):
             updates = []
             grads = T.grad(cost, params)
             t = theano.shared(numpy.float32(1))
@@ -518,7 +520,7 @@ class colorization(object):
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-            [self.bw_input,self.class8_313_rh_upsampled,self.y],
+            [self.bw_input,self.class8_313_rh_upsampled,self.data_ab_enc,self.non_gray_mask.output],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
