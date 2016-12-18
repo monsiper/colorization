@@ -374,7 +374,7 @@ class colorization(object):
         )
     
         self.class8_313_rh_upsampled = abstract_conv.bilinear_upsampling(self.class8_313_rh.output, 4)
-        
+        self.gt_y = abstract_conv.bilinear_upsampling(self.data_ab_enc, 4)
         #self.output = dec_net_out_to_rgb(self.class8_313_rh_upsampled[1,:,:,:], self.bw_input[1,:,:,:], temp=0.4)
         
         #########################
@@ -409,7 +409,7 @@ class colorization(object):
         batch_ind=1,
         batch_num=1,
         type='ADAM',
-        retrain_batch=True
+        train_all=True
     ):
         
         if not os.path.isdir(dir_name):
@@ -491,11 +491,11 @@ class colorization(object):
                            minibatch_index + 1,
                            self.n_train_batches,
                            cost_ij))
-            if retrain_batch:
+            if train_all:
                 self.train_set_x, self.train_set_y = load_data(dir_name, 
                                                                theano_shared=True,
                                                                ds=ds_rate,
-                                                               batch_ind=epoch%(45-batch_num)+1,
+                                                               batch_ind=epoch%(44-batch_num)+1,
                                                                batch_num=batch_num)
                 self.train_model = theano.function(
                 [self.index],
@@ -523,10 +523,35 @@ class colorization(object):
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-            [self.bw_input,self.class8_313_rh_upsampled,self.data_ab_enc,self.non_gray_mask.output],
+            [self.bw_input,self.class8_313_rh_upsampled,self.data_ab_enc],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
+            }
+        )
+        return self.output_model(ind)
+    
+    def test_frames(
+        self,
+        ind = 1,
+        dir_name='./data/',
+        ds_rate=None,
+        batch_ind=170
+        ):
+        self.test_set_x = load_data(dir_name, 
+                                    theano_shared=True,
+                                    batch_ind=batch_ind,
+                                    batch_num=1,
+                                    load_frames=True)
+        
+        self.n_test_batches = self.test_set_x.get_value(borrow=True).shape[0]
+        self.n_test_batches //= self.batch_size
+        print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
+        self.output_model = theano.function(
+            [self.index],
+            [self.bw_input,self.class8_313_rh_upsampled],
+            givens={
+                self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
         return self.output_model(ind)

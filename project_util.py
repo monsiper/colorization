@@ -156,7 +156,7 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
             batch_ind += 1
             np.save(new_path + '/frame_batch_l_%s.npy' % batch_ind, l_out)
 
-def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1):
+def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load_frames=False):
 
     path = os.path.join(
         os.path.split(__file__)[0], dir_name)
@@ -171,15 +171,21 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1):
 
     if not train_batches:
         return 'There is no .npy file in data folder'
-
-    if batch_num==None:
-        train_set_l = np.load(path + '/test_batch_l_1.npy')
-        train_set_ab = np.load(path + '/test_batch_ab_1.npy')
-        for i in range(1,len(train_batches)/2):
-            new_set_l = np.load(path + '/test_batch_l_%s.npy'%(i+1))
-            new_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(i+1))
+    if load_frames:
+        print('Loading Frame Batch %s'%(batch_ind))
+        train_set_l = np.load(path + '/frame_batch_l_%s.npy'%(batch_ind))
+        for i in range(batch_ind,batch_ind+batch_num-1):
+            new_set_l = np.load(path + '/frame_batch_l_%s.npy'%(i+1))
             train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
-            train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
+        np.random.seed(35)
+        np.random.shuffle(train_set_l)
+        train_set_l.astype(theano.config.floatX)
+        if theano_shared:
+            train_set_l_mat = shared_dataset(train_set_l)
+        else:
+            train_set_l_mat = train_set_l
+        return train_set_l_mat
+    
     else:
         print('Loading Batch %s'%(batch_ind))
         train_set_l = np.load(path + '/test_batch_l_%s.npy'%(batch_ind))
@@ -190,27 +196,20 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1):
             new_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(i+1))
             train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
             train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
+        np.random.seed(35)
+        np.random.shuffle(train_set_l)
+        np.random.seed(35)
+        np.random.shuffle(train_set_ab)
+        train_set_l.astype(theano.config.floatX)
+        train_set_ab.astype(theano.config.floatX)
+        if theano_shared:
+            train_set_l_mat = shared_dataset(train_set_l)
+            train_set_ab_mat = shared_dataset(train_set_ab)
+        else:
+            train_set_l_mat = train_set_l
+            train_set_ab_mat = train_set_ab
 
-    np.random.seed(35)
-    np.random.shuffle(train_set_l)
-    np.random.seed(35)
-    np.random.shuffle(train_set_ab)
-    train_set_l.astype(theano.config.floatX)
-    train_set_ab.astype(theano.config.floatX)
-    print(np.shape(train_set_l))
-
-    if ds>1:
-        train_set_l = measure.block_reduce(train_set_l, block_size=(1,1,ds,ds))
-        train_set_ab = measure.block_reduce(train_set_ab, block_size=(1,1,ds,ds))
-
-    if theano_shared:
-        train_set_l_mat = shared_dataset(train_set_l)
-        train_set_ab_mat = shared_dataset(train_set_ab)
-    else:
-        train_set_l_mat = train_set_l
-        train_set_ab_mat = train_set_ab
-
-    return (train_set_l_mat, train_set_ab_mat)
+        return (train_set_l_mat, train_set_ab_mat)
 
 def encode_ab_to_Q(a_chan_flt, b_chan_flt):
 
