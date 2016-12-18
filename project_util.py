@@ -48,7 +48,6 @@ def download_images(dir_name, num_of_pages):
         res = urllib2.urlopen(url)
         soup = BeautifulSoup(res.read())
         images = soup.find_all('img',{'class':'backdrop lazyload'})
-
         for image in images:
             full_filename = image.get('data-src')
             filename = str(full_filename.split('/')[-1])
@@ -57,7 +56,7 @@ def download_images(dir_name, num_of_pages):
             with open(complete_path, "wb") as code:
                 code.write(data)
 
-def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training',threshold=5):
+def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training', model_type='prob', threshold=5):
     """Converts .jpeg images into numpy matrices(each row corresponds to one image) and saves
      them in batches consisting of batch_size images"""
 
@@ -81,13 +80,19 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
                     with Image.open(f) as img_f:
                         try:
                             resized_im = resizeimage.resize_cover(img_f, [256, 256])
-                            # resized_im.save(path + '/' + 'image-%s.jpeg' % index, img_f.format)
                             img_rgb = (np.array(resized_im))
                             if len(img_rgb.shape)==3:
                                 img_lab = color.rgb2lab(img_rgb[:,:,0:3])
-                                l = img_lab[:, :, 0].flatten() # Slicing to get L data
-                                a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
-                                b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
+                                #store lab space differently depending on model_type
+                                if model_type=='prob':
+                                    l = img_lab[:, :, 0].flatten() # Slicing to get L data
+                                    a = (img_lab[:, :, 1][::4,::4]).flatten()  # Slicing to get a data
+                                    b = (img_lab[:, :, 2][::4,::4]).flatten()  # Slicing to get b data
+                                if model_type=='regression':
+                                    l = img_lab[:, :, 0].flatten()  # Slicing to get L data
+                                    a = img_lab[:, :, 1].flatten()  # Slicing to get a data
+                                    b = img_lab[:, :, 2].flatten()
+
                                 #print(np.sum(a>threshold)+np.sum(b>threshold))
                                 if (np.sum(a>threshold)+np.sum(b>threshold))>1:
                                     if batch_reset:
@@ -211,20 +216,24 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load
 
         return (train_set_l_mat, train_set_ab_mat)
 
-def encode_ab_to_Q(a_chan_flt, b_chan_flt):
+def encode_ab_to_Q(a_chan_flt, b_chan_flt, model_type):
 
-    sigma = 5.
-    ab_chan_comb = np.column_stack((a_chan_flt,b_chan_flt))
-    ref_Qcolor_bins = np.load('pts_in_hull.npy')
-    img_enc = np.zeros((a_chan_flt.shape[0], ref_Qcolor_bins.shape[0] ))
-    x_ind =np.arange(0,a_chan_flt.shape[0],dtype='int')[:,np.newaxis]
-    nbrs = NearestNeighbors(n_neighbors=5, algorithm='ball_tree').fit(ref_Qcolor_bins)
-    distances, indices = nbrs.kneighbors(ab_chan_comb)
-    wts = np.exp(-distances**2/(2*sigma**2))
-    wts = wts/np.sum(wts, axis=1)[:, np.newaxis]
-    img_enc[x_ind, indices] = wts
+    if model_type =='prob':
+        sigma = 5.
+        ab_chan_comb = np.column_stack((a_chan_flt,b_chan_flt))
+        ref_Qcolor_bins = np.load('pts_in_hull.npy')
+        img_enc = np.zeros((a_chan_flt.shape[0], ref_Qcolor_bins.shape[0] ))
+        x_ind =np.arange(0,a_chan_flt.shape[0],dtype='int')[:,np.newaxis]
+        nbrs = NearestNeighbors(n_neighbors=5, algorithm='ball_tree').fit(ref_Qcolor_bins)
+        distances, indices = nbrs.kneighbors(ab_chan_comb)
+        wts = np.exp(-distances**2/(2*sigma**2))
+        wts = wts/np.sum(wts, axis=1)[:, np.newaxis]
+        img_enc[x_ind, indices] = wts
 
-    return (img_enc.flatten()).astype(dtype=np.float32)
+        return (img_enc.flatten()).astype(dtype=np.float32)
+
+    if model_type=='regression':
+        return np.array(list(a_chan_flt) + list(b_chan_flt), dtype=np.float32)
 
 
 def test_images():

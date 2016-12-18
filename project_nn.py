@@ -381,7 +381,8 @@ class Conv(object):
                  border_mode='full',
                  conv_stride=None,
                  alpha=0,
-                 conv_dilation=None):
+                 conv_dilation=None,
+                 loaded_params=None):
         """
         Allocate a LeNetConvPoolLayer with shared variable internal parameters.
 
@@ -412,18 +413,27 @@ class Conv(object):
             conv_dilation=(1,1)
         fan_in = numpy.prod(filter_shape[1:])
         fan_out = (filter_shape[0] * numpy.prod(filter_shape[2:]))
-        W_bound = numpy.sqrt(6. / (fan_in + fan_out))
-        self.W = theano.shared(
-            numpy.asarray(
-                rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
-                dtype=theano.config.floatX
-            ),
-            borrow=True
-        )
-
-        # the bias is a 1D tensor -- one bias per output feature map
-        b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
-        self.b = theano.shared(value=b_values, borrow=True)
+        if loaded_params==None:
+            W_bound = numpy.sqrt(6. / (fan_in + fan_out))
+            self.W = theano.shared(
+                numpy.asarray(
+                    rng.uniform(low=-W_bound, high=W_bound, size=filter_shape),
+                    dtype=theano.config.floatX
+                ),
+                borrow=True
+            )
+            # the bias is a 1D tensor -- one bias per output feature map
+            b_values = numpy.zeros((filter_shape[0],), dtype=theano.config.floatX)
+            self.b = theano.shared(value=b_values, borrow=True)
+        else:
+            self.W = theano.shared(
+                loaded_params[0].get_value(),
+                borrow=True
+            )
+            self.b = theano.shared(
+                loaded_params[1].get_value(),
+                borrow=True
+            )
 
         # convolve input feature maps with filters
         conv_out = conv2d(
@@ -442,8 +452,6 @@ class Conv(object):
 
         # keep track of model input
         self.input = input
-
-
 
 
 class ConvReLU(object):
