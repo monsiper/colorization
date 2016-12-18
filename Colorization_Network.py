@@ -44,7 +44,7 @@ class colorization(object):
         """
         if not os.path.isdir(dir_name):
             download_images(dir_name, 50)
-        prepare_image_sets(dir_name, batch_size=200)
+            prepare_image_sets(dir_name, batch_size=200)
         self.rng = numpy.random.RandomState(23455)
         self.index = T.lscalar() 
     
@@ -394,6 +394,7 @@ class colorization(object):
             self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
         elif model_type=='without_prior_boost':
             self.cost = T.mean(-(((self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
+        self.loss = T.mean(-(((self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
 
 
     def train_network(
@@ -407,7 +408,8 @@ class colorization(object):
         train_batches=1,
         batch_ind=1,
         batch_num=1,
-        type='ADAM'
+        type='ADAM',
+        retrain_batch=True
     ):
         
         if not os.path.isdir(dir_name):
@@ -452,7 +454,7 @@ class colorization(object):
     
         self.train_model = theano.function(
             [self.index],
-            self.cost,
+            self.loss,
             updates=self.updates,
             givens={
                 self.x: self.train_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
@@ -489,19 +491,20 @@ class colorization(object):
                            minibatch_index + 1,
                            self.n_train_batches,
                            cost_ij))
-            self.train_set_x, self.train_set_y = load_data(dir_name, 
-                                                           theano_shared=True,
-                                                           ds=ds_rate,
-                                                           batch_ind=epoch%(45-batch_num)+1,
-                                                           batch_num=batch_num)
-            self.train_model = theano.function(
-            [self.index],
-            self.cost,
-            updates=self.updates,
-            givens={
-                self.x: self.train_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
-                self.y: self.train_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
-            }
+            if retrain_batch:
+                self.train_set_x, self.train_set_y = load_data(dir_name, 
+                                                               theano_shared=True,
+                                                               ds=ds_rate,
+                                                               batch_ind=epoch%(45-batch_num)+1,
+                                                               batch_num=batch_num)
+                self.train_model = theano.function(
+                [self.index],
+                self.loss,
+                updates=self.updates,
+                givens={
+                    self.x: self.train_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
+                    self.y: self.train_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
+                }
         )
         end_time = timeit.default_timer()
         # Print out summary
