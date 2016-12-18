@@ -48,7 +48,6 @@ def download_images(dir_name, num_of_pages):
         res = urllib2.urlopen(url)
         soup = BeautifulSoup(res.read())
         images = soup.find_all('img',{'class':'backdrop lazyload'})
-
         for image in images:
             full_filename = image.get('data-src')
             filename = str(full_filename.split('/')[-1])
