@@ -310,19 +310,7 @@ def train_nn(train_model, validate_model, test_model,
            ' ran for %.2fm' % ((end_time - start_time) / 60.)), file=sys.stderr)
     
     
-def drop(input, p=0.5): 
-    """
-    :type input: numpy.array
-    :param input: layer or weight matrix on which dropout is applied
-    
-    :type p: float or double between 0. and 1. 
-    :param p: p probability of NOT dropping out a unit, therefore (1.-p) is the drop rate.
-    
-    """            
-    rng = numpy.random.RandomState(1234)
-    srng = T.shared_randomstreams.RandomStreams(rng.randint(999999))
-    mask = srng.binomial(n=1, p=p, size=input.shape, dtype=theano.config.floatX)
-    return input * mask
+
 
 ##########  from mehmet #############
 class ConvSubSample(object):

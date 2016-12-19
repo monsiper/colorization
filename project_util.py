@@ -4,7 +4,6 @@ import os, sys
 from PIL import Image
 from resizeimage import resizeimage
 import numpy as np
-from matplotlib import pyplot as plt
 from skimage import color, io,measure
 from theano.tensor.signal import pool
 import theano
@@ -165,7 +164,7 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
             np.save(new_path + '/frame_batch_l_%s.npy' % batch_ind, l_out)
 
 def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load_frames=False,shuffler=True):
-
+    #load data into theano shared variables
     path = os.path.join(
         os.path.split(__file__)[0], dir_name)
 
@@ -219,7 +218,7 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load
         return (train_set_l_mat, train_set_ab_mat)
 
 def encode_ab_to_Q(a_chan_flt, b_chan_flt, model_type):
-
+    #soft encode ab space to Q color bins
     if model_type =='prob':
         sigma = 5.
         ab_chan_comb = np.column_stack((a_chan_flt,b_chan_flt))
@@ -237,10 +236,6 @@ def encode_ab_to_Q(a_chan_flt, b_chan_flt, model_type):
     if model_type=='regression':
         return np.array(list(a_chan_flt) + list(b_chan_flt), dtype=np.float32)
 
-
-def test_encode():
-
-    prepare_image_sets('data',200)
 
 
 
