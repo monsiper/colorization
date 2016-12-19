@@ -99,11 +99,11 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
                                 #print(np.sum(a>threshold)+np.sum(b>threshold))
                                 if (np.sum(a>threshold)+np.sum(b>threshold))>1:
                                     if batch_reset:
-                                        l_out = np.array(l, np.float32)
+                                        l_out = np.array(l, np.uint8)
                                         ab_enc_out = encode_ab_to_Q(a,b,'regression')
                                         batch_reset = False
                                     else:
-                                        new_l = l.astype(dtype=np.float32)
+                                        new_l = l.astype(dtype=np.uint8)
                                         new_ab_enc = encode_ab_to_Q(a,b,'regression')
                                         l_out = np.vstack((l_out,new_l))
                                         ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
@@ -239,34 +239,10 @@ def encode_ab_to_Q(a_chan_flt, b_chan_flt, model_type):
         return np.array(list(a_chan_flt) + list(b_chan_flt), dtype=np.float32)
 
 
-def test_images():
-
-    # download_images('data', 3)
-    # prepare_image_sets('data',200)
-    data_set = load_data('data', False)
-    data_l = ((data_set[0][219]).reshape(1,256,256)).transpose(1,2,0)
-    data_ab = (data_set[1][28]).reshape(64,64,313)
-               # .reshape(313,64,64)).transpose(1,2,0)
-    # img_construct = np.concatenate((data_l.astype(np.float64),data_ab.astype(np.float64)), axis=2)
-    # plt.imshow(color.lab2rgb(img_construct))
-    # plt.show()
-    return data_ab
-
 def test_encode():
 
     prepare_image_sets('data',200)
 
 
-# path = os.path.join(
-#     os.path.split(__file__)[0], 'data')
-#
-# filename = path + '/' + '1AKL15pxyyVrHKMVR8Md64sAJw9.jpg'
-# img_rgb = io.imread(filename)
-# img_lab = color.rgb2lab(img_rgb)
-# img_l = img_lab[:,:,0]
-# img_ab = img_lab[:,:,1:4]
-# img_construct = np.concatenate((img_l,img_ab), axis=2)
-# plt.imshow(color.lab2rgb(img_construct))
-# plt.show()
 
 
