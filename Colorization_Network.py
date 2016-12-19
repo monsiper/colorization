@@ -373,9 +373,9 @@ class colorization(object):
             border_mode=0,
             loaded_params=loaded_objects[29]
         )
-    
+
         self.class8_313_rh_upsampled = abstract_conv.bilinear_upsampling(self.class8_313_rh.output, 4)
-        self.gt_y = abstract_conv.bilinear_upsampling(self.data_ab_enc, 4)
+
         #self.output = dec_net_out_to_rgb(self.class8_313_rh_upsampled[1,:,:,:], self.bw_input[1,:,:,:], temp=0.4)
         
         #########################
