@@ -45,16 +45,19 @@ def download_images(dir_name, num_of_pages):
 
     print('Downloading images...')
     for url in url_list:
-        res = urllib2.urlopen(url)
-        soup = BeautifulSoup(res.read())
-        images = soup.find_all('img',{'class':'backdrop lazyload'})
-        for image in images:
-            full_filename = image.get('data-src')
-            filename = str(full_filename.split('/')[-1])
-            data = urllib2.urlopen(full_filename).read()
-            complete_path = os.path.join(new_path,filename)
-            with open(complete_path, "wb") as code:
-                code.write(data)
+        try:
+            res = urllib2.urlopen(url)
+            soup = BeautifulSoup(res.read())
+            images = soup.find_all('img',{'class':'backdrop lazyload'})
+            for image in images:
+                full_filename = image.get('data-src')
+                filename = str(full_filename.split('/')[-1])
+                data = urllib2.urlopen(full_filename).read()
+                complete_path = os.path.join(new_path,filename)
+                with open(complete_path, "wb") as code:
+                    code.write(data)
+        except Exception:
+            pass
 
 def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training', model_type='prob', threshold=5):
     """Converts .jpeg images into numpy matrices(each row corresponds to one image) and saves
@@ -97,11 +100,11 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
                                 if (np.sum(a>threshold)+np.sum(b>threshold))>1:
                                     if batch_reset:
                                         l_out = np.array(l, np.float32)
-                                        ab_enc_out = encode_ab_to_Q(a,b)
+                                        ab_enc_out = encode_ab_to_Q(a,b,'regression')
                                         batch_reset = False
                                     else:
                                         new_l = l.astype(dtype=np.float32)
-                                        new_ab_enc = encode_ab_to_Q(a,b)
+                                        new_ab_enc = encode_ab_to_Q(a,b,'regression')
                                         l_out = np.vstack((l_out,new_l))
                                         ab_enc_out = np.vstack((ab_enc_out, new_ab_enc))
                                     img_ind += 1
