@@ -164,7 +164,7 @@ def prepare_image_sets(dir_name='data', batch_size=10000, dataset_type='training
             batch_ind += 1
             np.save(new_path + '/frame_batch_l_%s.npy' % batch_ind, l_out)
 
-def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load_frames=False):
+def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load_frames=False,shuffler=True):
 
     path = os.path.join(
         os.path.split(__file__)[0], dir_name)
@@ -185,8 +185,6 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load
         for i in range(batch_ind,batch_ind+batch_num-1):
             new_set_l = np.load(path + '/frame_batch_l_%s.npy'%(i+1))
             train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
-        np.random.seed(35)
-        np.random.shuffle(train_set_l)
         train_set_l.astype(theano.config.floatX)
         if theano_shared:
             train_set_l_mat = shared_dataset(train_set_l)
@@ -204,10 +202,11 @@ def load_data(dir_name, theano_shared=True, ds=1,batch_ind=None,batch_num=1,load
             new_set_ab = np.load(path + '/test_batch_ab_%s.npy'%(i+1))
             train_set_l = np.concatenate((train_set_l, new_set_l), axis=0)
             train_set_ab = np.concatenate((train_set_ab, new_set_ab), axis=0)
-        np.random.seed(35)
-        np.random.shuffle(train_set_l)
-        np.random.seed(35)
-        np.random.shuffle(train_set_ab)
+        if shuffler:
+            np.random.seed(35)
+            np.random.shuffle(train_set_l)
+            np.random.seed(35)
+            np.random.shuffle(train_set_ab)
         train_set_l.astype(theano.config.floatX)
         train_set_ab.astype(theano.config.floatX)
         if theano_shared:

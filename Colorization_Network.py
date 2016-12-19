@@ -7,6 +7,7 @@ from project_util import download_images, prepare_image_sets
 import scipy
 import os
 from six.moves import cPickle
+from skimage import color, io,measure
 
 import sys
 
@@ -78,7 +79,7 @@ class colorization(object):
         ######################
         print('... building the model')
         self.bw_input = self.x.reshape((batch_size, 1, dim_in, dim_in)) - 50
-        self.data_ab_enc = self.y.reshape((batch_size, 313, 64, 64))
+        self.data_ab_enc = self.y.reshape((batch_size, 64, 64, 313)).transpose((0,3,1,2))
     
         #######################
         #####   subsample ab space  ######
@@ -372,9 +373,9 @@ class colorization(object):
             border_mode=0,
             loaded_params=loaded_objects[29]
         )
-
+    
         self.class8_313_rh_upsampled = abstract_conv.bilinear_upsampling(self.class8_313_rh.output, 4)
-
+        self.gt_y = abstract_conv.bilinear_upsampling(self.data_ab_enc, 4)
         #self.output = dec_net_out_to_rgb(self.class8_313_rh_upsampled[1,:,:,:], self.bw_input[1,:,:,:], temp=0.4)
         
         #########################
@@ -391,10 +392,10 @@ class colorization(object):
         self.net_out_for_cost_func = T.log((self.class8_313_rh.output.transpose((0,2,3,1))).reshape((batch_size, 4096, 313))+1e-7)
         #self.data_ab_enc_for_cost_func = self.data_ab_enc.reshape((batch_size, 4096, 313))
         if model_type=='with_prior_boost':
-            self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
+            self.cost = T.mean(-(((self.prior_boost.output).reshape((batch_size,4096))*(self.net_out_for_cost_func*self.y.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
         elif model_type=='without_prior_boost':
-            self.cost = T.mean(-(((self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
-        self.loss = T.mean(-(((self.net_out_for_cost_func*self.data_ab_enc.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
+            self.cost = T.mean(-(((self.net_out_for_cost_func*self.y.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
+        self.loss = T.mean(-(((self.net_out_for_cost_func*self.y.reshape((batch_size, 4096, 313))).sum(axis=2)).sum(axis=1)))
 
 
     def train_network(
@@ -515,22 +516,36 @@ class colorization(object):
         ind = 1,
         dir_name='./data/',
         ds_rate=None,
-        batch_ind=1
+        batch_ind=1,
+        shuffler=False
         ):
-        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_ind=batch_ind,batch_num=1)
+        self.test_set_x, self.test_set_y = load_data(dir_name, theano_shared=True, ds=ds_rate,batch_ind=batch_ind,batch_num=1,shuffler=shuffler)
         self.n_test_batches = self.test_set_x.get_value(borrow=True).shape[0]
         self.n_test_batches //= self.batch_size
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-            [self.bw_input,self.class8_313_rh_upsampled,self.data_ab_enc],
+            [self.bw_input,self.class8_313_rh_upsampled,self.gt_y],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
         return self.output_model(ind)
-    
+        """
+        result = self.output_model(ind)
+        out = numpy.zeros((self.n_test_batches,3,256,256,3))
+        for i in range(self.batch_size):
+            netout=dec_net_out_to_rgb(result[1][i,:,:,:],result[0][i,:,:,:]+50)
+            gt=dec_net_out_to_rgb(result[2][i,:,:,:],result[0][i,:,:,:]+50)
+            grayscale=dec_net_out_to_rgb(result[2][i,:,:,:],result[0][i,:,:,:]+50)
+            grayscale[:,:,1]=grayscale[:,:,1]*0
+            grayscale[:,:,2]=grayscale[:,:,2]*0
+            out[i,0,:,:,:]=grayscale
+            out[i,1,:,:,:]=netout
+            out[i,2,:,:,:]=gt
+        return out#self.output_model(ind)
+        """
     def test_frames(
         self,
         ind = 1,
@@ -554,7 +569,13 @@ class colorization(object):
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
-        return self.output_model(ind)
+        networkoutputs = numpy.zeros((self.batch_size*self.n_test_batches,256,256,3))
+        for i in range(self.n_test_batches):
+            result = self.output_model(i)
+            print(i)
+            for ind in range(self.batch_size):
+                networkoutputs[i*self.batch_size+ind,:,:,:] = color.lab2rgb(dec_net_out_to_rgb(result[1][ind,:,:,:],result[0][ind,:,:,:]+50))
+        return networkoutputs#self.output_model(ind)
 
     def save_params(self,filename='params.save'):        
         f = open(filename, 'wb') 
