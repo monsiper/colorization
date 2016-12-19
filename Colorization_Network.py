@@ -7,6 +7,7 @@ from project_util import download_images, prepare_image_sets
 import scipy
 import os
 from six.moves import cPickle
+from skimage import color, io,measure
 
 import sys
 
@@ -554,7 +555,13 @@ class colorization(object):
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
-        return self.output_model(ind)
+        networkoutputs = numpy.zeros((self.batch_size*self.n_test_batches,256,256,3))
+        for i in range(self.n_test_batches):
+            result = self.output_model(i)
+            print(i)
+            for ind in range(self.batch_size):
+                networkoutputs[i*self.batch_size+ind,:,:,:] = color.lab2rgb(dec_net_out_to_rgb(result[1][ind,:,:,:],result[0][ind,:,:,:]+50))
+        return networkoutputs#self.output_model(ind)
 
     def save_params(self,filename='params.save'):        
         f = open(filename, 'wb') 

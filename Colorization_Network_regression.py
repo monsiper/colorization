@@ -44,7 +44,7 @@ class colorization(object):
         """
         if not os.path.isdir(dir_name):
             download_images(dir_name, 50)
-            prepare_image_sets(dir_name, batch_size=200)
+            prepare_image_sets(dir_name, batch_size=200,model_type='regression')
         self.rng = numpy.random.RandomState(23455)
         self.index = T.lscalar()
 
