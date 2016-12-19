@@ -525,14 +525,27 @@ class colorization(object):
         print('Current test data size is %i' % self.test_set_x.get_value(borrow=True).shape[0])
         self.output_model = theano.function(
             [self.index],
-            [self.bw_input,self.class8_313_rh_upsampled,self.data_ab_enc,self.gt_y],
+            [self.bw_input,self.class8_313_rh_upsampled,self.gt_y],
             givens={
                 self.x: self.test_set_x[self.index * self.batch_size: (self.index + 1) * self.batch_size],
                 self.y: self.test_set_y[self.index * self.batch_size: (self.index + 1) * self.batch_size]
             }
         )
         return self.output_model(ind)
-    
+        """
+        result = self.output_model(ind)
+        out = numpy.zeros((self.n_test_batches,3,256,256,3))
+        for i in range(self.batch_size):
+            netout=dec_net_out_to_rgb(result[1][i,:,:,:],result[0][i,:,:,:]+50)
+            gt=dec_net_out_to_rgb(result[2][i,:,:,:],result[0][i,:,:,:]+50)
+            grayscale=dec_net_out_to_rgb(result[2][i,:,:,:],result[0][i,:,:,:]+50)
+            grayscale[:,:,1]=grayscale[:,:,1]*0
+            grayscale[:,:,2]=grayscale[:,:,2]*0
+            out[i,0,:,:,:]=grayscale
+            out[i,1,:,:,:]=netout
+            out[i,2,:,:,:]=gt
+        return out#self.output_model(ind)
+        """
     def test_frames(
         self,
         ind = 1,

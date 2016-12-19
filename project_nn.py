@@ -357,9 +357,6 @@ class ConvSubSample(object):
         self.output = T.concatenate([conv_out_first, conv_out_second], axis=1)
 
 def dec_net_out_to_rgb(image_net_out, data_l, temp=0.4, model_type='prob'):
-
-    data_l += 50
-
     if model_type=='prob':
 
         #image_net_out is a tensor of shape (313,256,256) and data_l is a tensor of shape (1,256,256)
